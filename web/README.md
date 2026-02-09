@@ -1,149 +1,60 @@
-# FabLab INACAP - Frontend
+# FabLab Web (Next.js + Payload)
 
-Sitio web moderno para el Laboratorio de Fabricación Digital del Instituto INACAP, desarrollado con Next.js 15, TypeScript, Tailwind CSS y shadcn/ui.
+Sitio web y CMS integrados para FabLab, construido con Next.js y Payload CMS.
 
-## 🚀 Características
+## Stack
 
-- **Framework**: Next.js 15 con App Router
-- **Lenguaje**: TypeScript
-- **Estilos**: Tailwind CSS v4
-- **Componentes**: shadcn/ui
-- **Iconos**: Lucide React
-- **Fuente**: Inter
-- **3D Graphics**: Three.js con React Three Fiber
-- **Animaciones**: Framer Motion con scroll triggers
+- Next.js 15 + React 19
+- Payload CMS 3 (admin en `/cms`)
+- PostgreSQL (via `@payloadcms/db-postgres`)
+- Tailwind CSS v4 y Radix UI
+- Three.js / React Three Fiber
+- Framer Motion
 
-## 📁 Estructura del Proyecto
+## Estructura del proyecto
 
 ```
+app/                       # Rutas (web, admin, api)
 src/
-├── app/                    # App Router de Next.js
-│   ├── layout.tsx         # Layout principal
-│   ├── page.tsx          # Página de inicio
-│   └── globals.css       # Estilos globales
-├── components/            # Componentes React
-│   ├── ui/               # Componentes base de shadcn/ui
-│   ├── layout/           # Componentes de layout
-│   │   ├── navbar.tsx    # Barra de navegación
-│   │   └── footer.tsx    # Pie de página
-│   ├── common/           # Componentes comunes reutilizables
-│   │   ├── titles.tsx    # Componentes de títulos
-│   │   ├── text.tsx      # Componentes de texto
-│   │   └── images.tsx    # Componentes de imágenes
-│   ├── sections/         # Secciones de páginas
-│   │   ├── hero-section.tsx        # Sección hero
-│   │   ├── technologies-section.tsx # Sección de tecnologías
-│   │   └── projects-section.tsx    # Sección de proyectos
-│   ├── graphics/         # Componentes gráficos
-│   │   └── patterns.tsx  # Patrones y efectos visuales
-│   └── index.ts         # Exportaciones centralizadas
-├── lib/                  # Utilidades y funciones auxiliares
-│   ├── hooks/           # Custom hooks
-│   ├── helpers/         # Funciones helper
-│   ├── constants/       # Constantes del proyecto
-│   └── utils.ts         # Utilidades generales
+	features/                # Modulos por dominio
+	shared/                  # UI, hooks, utils, types
+prisma/                    # Esquema y migraciones
+public/                    # Archivos estaticos
+media/                     # Uploads de Payload
 ```
 
-## 🎨 Diseño Futurista y Minimalista
+## Desarrollo local
 
-- **Colores**: Gradientes azul-púrpura para elementos principales
-- **Responsive**: Mobile-first design
-- **Animaciones**: Transiciones suaves y efectos hover
-- **Tipografía**: Inter para legibilidad moderna
-
-## 🚀 Comandos de Desarrollo
-
-```bash
-# Instalar dependencias
+1. Crea `web/.env.local` con:
+```
+DATABASE_URL=postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog
+PAYLOAD_SECRET=CAMBIA_ESTE_SECRETO
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+NEXT_PUBLIC_VESSEL_API_URL=
+```
+2. Instala dependencias y ejecuta:
+```
 npm install
-
-# Servidor de desarrollo
 npm run dev
+```
 
-# Build de producción
+## Comandos utiles
+
+```
 npm run build
-
-# Servidor de producción
-npm start
-
-# Linting
+npm run start
 npm run lint
+npm run payload:migrate
+npm run payload:generate
 ```
 
-## 📱 Funcionalidades Implementadas
+## Accesos
 
-### Landing Page
+- Web: `http://localhost:3000`
+- Admin CMS: `http://localhost:3000/cms`
+- API CMS: `http://localhost:3000/api/payload`
 
-1. **Hero Section**: Presentación principal con estadísticas
-2. **Technologies Section**: Showcase de equipamiento y capacidades
-3. **Projects Section**: Galería de proyectos estudiantiles
+## Imagenes
 
-### Navegación
-
-- **Navbar**: Responsive con menú móvil
-- **Footer**: Información de contacto y enlaces
-- **Scroll Effects**: Navbar transparente que se solidifica
-
-### Componentes Organizados
-
-- **Layout**: Navbar y Footer
-- **Common**: Títulos, textos e imágenes reutilizables
-- **Sections**: Secciones específicas de páginas con modelos 3D
-- **Graphics**: Efectos visuales, patrones y modelos 3D interactivos
-
-## 🎮 Modelos 3D y Animaciones
-
-### Three.js Integration
-
-- **React Three Fiber**: Renderer 3D para React
-- **React Three Drei**: Helpers y componentes 3D
-- **Modelos disponibles**: Impresora 3D, Chip tecnológico, Cubo interactivo
-
-### Scroll Animations
-
-- **Framer Motion**: Animaciones basadas en scroll
-- **Parallax Effects**: Múltiples capas con diferentes velocidades
-- **Reveal Animations**: Elementos que aparecen al hacer scroll
-- **3D Model Interactions**: Modelos que rotan y escalan con el scroll
-
----
-
-**Desarrollado para FabLab INACAP** - Laboratorio de Fabricación Digital
-
----
-
-## 🔌 Conectar frontend con Strapi (rápido)
-
-1) En el backend Strapi (cms): crea `cms/.env` a partir de `cms/.env.example` y rellena los valores (muy importante `APP_KEYS` y `ADMIN_JWT_SECRET`). Por ejemplo:
-```
-APP_KEYS=your_key_1,your_key_2
-ADMIN_JWT_SECRET=un-secret-seguro
-```
-Genera claves seguras con:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-2) En el frontend Next: crea `web/.env.local` (no lo git) y añade:
-```
-STRAPI_URL=http://localhost:1337
-NEXT_PUBLIC_STRAPI_URL=http://localhost:1337
-```
-3) Arranca ambos servicios:
-```bash
-# Backend (Strapi)
-cd cms
-npm install
-npm run develop
-
-# Frontend (Next)
-cd ../web
-npm install
-npm run dev
-```
-
-4) En el navegador:
-- Panel Strapi Admin: http://localhost:1337/admin
-- Frontend Next Admin (login): http://localhost:3000/admin
-
-El flujo de login usa `web/app/api/auth/login` en Next, que llama a Strapi desde el servidor (no desde el navegador), guarda una cookie `fablab_token` e hidrata la sesión con `GET /api/auth/session`.
+Payload genera variantes WebP y Next.js entrega AVIF/WebP cuando es posible.
 

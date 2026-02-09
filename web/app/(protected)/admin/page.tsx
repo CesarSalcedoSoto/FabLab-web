@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/cards/card";
 import { Button } from "@/shared/ui/buttons/button";
 import { 
+  Package, 
   Users, 
   Activity, 
   FileText, 
@@ -11,20 +12,12 @@ import {
   AlertCircle,
   CheckCircle,
   FileIcon,
+  BookOpenIcon,
   PrinterIcon,
-  UserCircle,
-  UserPlus,
-  Play,
-  Mail,
-  ClipboardList,
-  Boxes,
+  UploadIcon
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import { getDashboardMetrics, getActiveProjects, getActiveSpecialists, getRecentActivity, type RecentActivityItem } from "./actions";
-
-// Marcar como página dinámica para evitar pre-renderizado
-export const dynamic = 'force-dynamic';
+import { getDashboardMetrics, getActiveProjects } from "./actions";
 
 // Formateador de bytes a formato legible
 function formatBytes(bytes: number): string {
@@ -39,267 +32,183 @@ export default async function AdminDashboardPage() {
   // Obtener métricas reales de la base de datos
   const metrics = await getDashboardMetrics();
   const activeProjectsList = await getActiveProjects();
-  const activeSpecialistsList = await getActiveSpecialists();
-  const recentActivities = await getRecentActivity();
 
   // Calcular porcentajes
+  const equipmentUsagePercent = metrics.totalEquipment > 0 
+    ? Math.round((metrics.equipmentInUse / metrics.totalEquipment) * 100) 
+    : 0;
+
   const storageUsagePercent = metrics.storageTotal > 0
     ? Math.round((metrics.storageUsed / metrics.storageTotal) * 100)
     : 0;
 
-  // Función para obtener el ícono según el tipo de actividad
-  function getActivityIcon(activity: RecentActivityItem) {
-    switch (activity.type) {
-      case "equipment_usage":
-        return activity.metadata?.isActive ? Play : PrinterIcon;
-      case "new_member":
-        return UserPlus;
-      case "project":
-        return FileIcon;
-      default:
-        return Activity;
+  const recentActivities = [
+    {
+      id: 1,
+      title: "Proyecto Prototipo PCB iniciado",
+      user: "Ana García",
+      time: "Hace 2 horas",
+      icon: FileIcon,
+      color: "bg-blue-100 text-blue-600"
+    },
+    {
+      id: 2,
+      title: "Impresora 3D Prusa reservada",
+      user: "Carlos López",
+      time: "Hace 3 horas",
+      icon: PrinterIcon,
+      color: "bg-purple-100 text-purple-600"
+    },
+    {
+      id: 3,
+      title: "Filamento PLA reabastecido",
+      user: "Admin",
+      time: "Hace 5 horas",
+      icon: CheckCircle,
+      color: "bg-green-100 text-green-600"
+    },
+    {
+      id: 4,
+      title: "Archivo Design_v3.pdf subido",
+      user: "María Rodríguez",
+      time: "Hace 1 día",
+      icon: UploadIcon,
+      color: "bg-orange-100 text-orange-600"
     }
-  }
-
-  // Función para obtener el color según el tipo de actividad
-  function getActivityColor(activity: RecentActivityItem) {
-    switch (activity.type) {
-      case "equipment_usage":
-        return activity.metadata?.isActive 
-          ? "bg-green-100 text-green-600" 
-          : "bg-purple-100 text-purple-600";
-      case "new_member":
-        return "bg-blue-100 text-blue-600";
-      case "project":
-        return "bg-orange-100 text-orange-600";
-      default:
-        return "bg-gray-100 text-gray-600";
-    }
-  }
+  ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex items-center gap-2 text-xs sm:text-sm">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center gap-2 text-sm">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-green-600 font-medium hidden sm:inline">Sistema Operativo</span>
-          <span className="text-green-600 font-medium sm:hidden">Online</span>
+          <span className="text-green-600 font-medium">Sistema Operativo</span>
         </div>
       </div>
 
-      {/* Stats Grid - 4 columns on desktop, 2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Proyectos Activos */}
-        <Link href="/admin/content/projects">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-500" />
-                Proyectos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.activeProjects}</div>
-              <div className="flex items-center text-xs text-green-600">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">+{metrics.projectsTrend}% vs. mes anterior</span>
-                <span className="sm:hidden">Activos</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Proyectos Activos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">{metrics.activeProjects}</div>
+            <div className="flex items-center text-xs text-green-600">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              +{metrics.projectsTrend}% vs. mes anterior
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Equipos */}
-        <Link href="/admin/inventory/items">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-purple-500" />
-                Equipos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.totalEquipment}</div>
-              <div className="flex items-center text-xs text-purple-600">
-                <Activity className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">{metrics.equipmentInUse} en uso actualmente</span>
-                <span className="sm:hidden">{metrics.equipmentInUse} en uso</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Equipos en Inventario */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Equipos en Inventario</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">
+              {metrics.equipmentInUse}/{metrics.totalEquipment}
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div 
+                className="bg-black h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${equipmentUsagePercent}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">{equipmentUsagePercent}% activos</div>
+          </CardContent>
+        </Card>
 
-        {/* Insumos / Inventario */}
-        <Link href="/admin/inventory/items?tab=inventory">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Boxes className="h-4 w-4 text-orange-500" />
-                Insumos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.totalInventoryItems}</div>
-              <div className="flex items-center text-xs text-orange-600">
-                {metrics.lowStockItems > 0 ? (
-                  <>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">{metrics.lowStockItems} con bajo stock</span>
-                    <span className="sm:hidden">{metrics.lowStockItems} bajo stock</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    <span>Stock adecuado</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Items Bajo Stock */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Items Bajo Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">{metrics.lowStockItems}</div>
+            <div className="flex items-center text-xs text-orange-600">
+              {metrics.lowStockItems > 0 ? (
+                <>
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Requiere atención
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Stock adecuado
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Equipo / Especialistas */}
-        <Link href="/admin/content/team">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="h-4 w-4 text-green-500" />
-                Equipo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">
-                {metrics.activeSpecialists}<span className="text-base sm:text-lg text-gray-400 font-normal">/{metrics.totalSpecialists}</span>
-              </div>
-              <div className="flex items-center text-xs text-green-600">
-                <Users className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Miembros visibles en web</span>
-                <span className="sm:hidden">En equipo</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Especialistas Activos */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Especialistas Activos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">
+              {metrics.activeSpecialists}/{metrics.totalSpecialists}
+            </div>
+            <div className="flex items-center text-xs text-green-600">
+              {metrics.teamImprovement > 0 ? (
+                <>
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +{metrics.teamImprovement}% mejora del equipo
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Equipo completo
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Contacto - con punto de alerta si hay mensajes nuevos */}
-        <Link href="/admin/contacto">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <div className="relative">
-                  <Mail className="h-4 w-4 text-sky-500" />
-                  {metrics.newContactMessages > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                  )}
-                </div>
-                Contacto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.newContactMessages}</div>
-              <div className="flex items-center text-xs text-sky-600">
-                {metrics.newContactMessages > 0 ? (
-                  <>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">{metrics.newContactMessages === 1 ? 'Mensaje nuevo por leer' : 'Mensajes nuevos por leer'}</span>
-                    <span className="sm:hidden">Nuevos</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    <span>Todo al día</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Almacenamiento en Nube */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Almacenamiento en Nube</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">{metrics.storageFiles}</div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  storageUsagePercent > 90 ? 'bg-red-500' : 
+                  storageUsagePercent > 70 ? 'bg-yellow-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${storageUsagePercent}%` }}
+              ></div>
+            </div>
+            <div className="flex items-center text-xs text-blue-600 mt-1">
+              <CloudUpload className="h-3 w-3 mr-1" />
+              {formatBytes(metrics.storageUsed)} de {formatBytes(metrics.storageTotal)}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Solicitudes - con punto de alerta si hay pendientes */}
-        <Link href="/admin/solicitudes">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <div className="relative">
-                  <ClipboardList className="h-4 w-4 text-yellow-500" />
-                  {metrics.pendingSolicitudes > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                  )}
-                </div>
-                Solicitudes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.pendingSolicitudes}</div>
-              <div className="flex items-center text-xs text-yellow-600">
-                {metrics.pendingSolicitudes > 0 ? (
-                  <>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">{metrics.pendingSolicitudes === 1 ? 'Solicitud pendiente' : 'Solicitudes pendientes'}</span>
-                    <span className="sm:hidden">Pendientes</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    <span>Sin pendientes</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Almacenamiento */}
-        <Link href="/admin/inventory">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <CloudUpload className="h-4 w-4 text-indigo-500" />
-                Archivos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.storageFiles}</div>
-              <div className="hidden sm:block w-full bg-gray-200 rounded-full h-2 mt-1 mb-1">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    storageUsagePercent > 90 ? 'bg-red-500' : 
-                    storageUsagePercent > 70 ? 'bg-yellow-500' : 'bg-indigo-500'
-                  }`}
-                  style={{ width: `${storageUsagePercent}%` }}
-                ></div>
-              </div>
-              <div className="flex items-center text-xs text-indigo-600">
-                <CloudUpload className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">{formatBytes(metrics.storageUsed)} de {formatBytes(metrics.storageTotal)}</span>
-                <span className="sm:hidden">{formatBytes(metrics.storageUsed)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Actividad general */}
-        <Link href="/admin/equipment-usage">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-emerald-500" />
-                Actividad
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">
-                {metrics.activeProjects + metrics.activeSpecialists}
-              </div>
-              <div className="flex items-center text-xs text-emerald-600">
-                <Activity className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Proyectos + Especialistas activos</span>
-                <span className="sm:hidden">Activos</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Actividad del Mes */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Actividad del Mes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-1">
+              {metrics.activeProjects + metrics.activeSpecialists}
+            </div>
+            <div className="flex items-center text-xs text-green-600">
+              <Activity className="h-3 w-3 mr-1" />
+              Proyectos + Especialistas activos
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Proyectos Activos List */}
@@ -334,149 +243,65 @@ export default async function AdminDashboardPage() {
         </Card>
       )}
 
-      {/* Especialistas Activos List */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">Especialistas en el Equipo</CardTitle>
-            <p className="text-sm text-gray-500">Miembros visibles en /equipo</p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin/content/team">
-              <Users className="h-4 w-4 mr-2" />
-              Gestionar
-            </Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {activeSpecialistsList.length === 0 ? (
-            <div className="text-center py-8">
-              <UserCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No hay especialistas activos</p>
-              <p className="text-gray-400 text-xs mt-1">Agrega miembros desde la sección de Equipo</p>
-              <Button variant="outline" size="sm" className="mt-4" asChild>
-                <Link href="/admin/content/team">
-                  Agregar especialista
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-              {activeSpecialistsList.slice(0, 6).map((specialist) => (
-                <div key={specialist.id} className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  {specialist.image ? (
-                    <Image
-                      src={specialist.image}
-                      alt={specialist.name || 'Especialista'}
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm sm:text-sm flex-shrink-0">
-                      {specialist.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
-                    </div>
-                  )}
-                  <div className="w-full min-w-0 text-center sm:text-left">
-                    <p className="font-medium text-xs sm:text-sm truncate px-1">{specialist.name}</p>
-                    <p className="hidden sm:block text-xs text-gray-500 truncate">{specialist.role || specialist.specialty || 'Especialista'}</p>
-                  </div>
-                  <span className={`hidden sm:inline text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    specialist.category === 'leadership' 
-                      ? 'bg-purple-100 text-purple-700'
-                      : specialist.category === 'specialist'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}>
-                    {specialist.category === 'leadership' ? 'Directivo' : 
-                     specialist.category === 'specialist' ? 'Especialista' : 'Colaborador'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          {activeSpecialistsList.length > 6 && (
-            <div className="mt-4 text-center">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin/content/team">
-                  Ver todos ({activeSpecialistsList.length})
-                </Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Actividad Reciente */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">Actividad Reciente</CardTitle>
-            <p className="text-sm text-gray-500">Últimas acciones en el sistema</p>
-          </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/equipment-usage">
-              <Clock className="h-4 w-4 mr-2" />
-              Ver todo
-            </Link>
-          </Button>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Actividad Reciente</CardTitle>
+          <p className="text-sm text-gray-500">Últimas acciones en el sistema</p>
         </CardHeader>
         <CardContent>
-          {recentActivities.length === 0 ? (
-            <div className="text-center py-8">
-              <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No hay actividad reciente</p>
-              <p className="text-gray-400 text-xs mt-1">Las acciones del sistema aparecerán aquí</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentActivities.map((activity) => {
-                const ActivityIcon = getActivityIcon(activity);
-                const activityColor = getActivityColor(activity);
-                
-                return (
-                  <div key={activity.id} className="flex items-start gap-3">
-                    {/* Avatar del usuario o ícono */}
-                    <div className="relative">
-                      {activity.userAvatar ? (
-                        <Image
-                          src={activity.userAvatar}
-                          alt={activity.user}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm">
-                          {activity.user?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
-                        </div>
-                      )}
-                      {/* Badge de tipo de actividad */}
-                      <div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${activityColor}`}>
-                        <ActivityIcon className="h-3 w-3" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-500">{activity.user}</p>
-                        {activity.metadata?.isActive && activity.metadata?.duration && (
-                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                            {activity.metadata.duration}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="space-y-4">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start gap-4">
+                <div className={`p-2 rounded-lg ${activity.color}`}>
+                  <activity.icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-sm text-gray-500">{activity.user}</p>
+                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
+      {/* Acciones Rápidas */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Acciones Rápidas</CardTitle>
+          <p className="text-sm text-gray-500">Accesos directos a funciones comunes</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <Button variant="outline" className="justify-start h-auto py-3" asChild>
+              <Link href="/admin/content/projects">
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Proyectos
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3" asChild>
+              <Link href="/admin/inventory/items">
+                <Wrench className="h-4 w-4 mr-2" />
+                Ver Equipos
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3" asChild>
+              <Link href="/admin/content/team">
+                <Users className="h-4 w-4 mr-2" />
+                Ver Especialistas
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3" asChild>
+              <Link href="/admin/inventory">
+                <Package className="h-4 w-4 mr-2" />
+                Ver Inventario
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

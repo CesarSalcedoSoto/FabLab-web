@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { cn } from '@/shared/utils';
 import { useAuth, hasModuleAccess } from '@/features/auth';
 import type { FeatureModule, UserModuleAccess } from '@/features/auth/domain/value-objects/permission';
@@ -31,13 +30,7 @@ import {
   HelpCircle,
   MessageSquare,
   ImageIcon,
-  ExternalLink,
-  PanelLeftClose,
-  PanelLeft,
-  Monitor,
-  User,
-  LogOut,
-  ClipboardList,
+  ExternalLink
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -46,77 +39,38 @@ interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
   module?: FeatureModule; // Módulo requerido para ver este item
   children?: SidebarItem[];
-  adminOnly?: boolean; // Solo visible para admins
 }
 
-// Items para usuarios admin
-const adminSidebarItems: SidebarItem[] = [
+const sidebarItems: SidebarItem[] = [
   {
     title: 'Dashboard',
     href: '/admin',
     icon: Home,
-    adminOnly: true,
   },
   {
     title: 'Inventario',
     href: '/admin/inventory',
     icon: Package,
-    adminOnly: true,
   },
   {
     title: 'Equipos',
     href: '/admin/inventory/items',
     icon: Wrench,
-    adminOnly: true,
-  },
-  {
-    title: 'Usos de Equipos',
-    href: '/admin/equipment-usage',
-    icon: Monitor,
-  },
-  {
-    title: 'Solicitudes FabLab',
-    href: '/admin/solicitudes',
-    icon: ClipboardList,
-    adminOnly: true,
-  },
-  {
-    title: 'Contacto',
-    href: '/admin/contacto',
-    icon: MessageSquare,
-    adminOnly: true,
   },
   {
     title: 'Proyectos',
     href: '/admin/content/projects',
     icon: FolderTree,
-    adminOnly: true,
   },
   {
     title: 'Especialistas',
     href: '/admin/content/team',
     icon: Users,
-    adminOnly: true,
   },
   {
     title: 'Configuración',
     href: '/admin/settings',
     icon: Settings,
-    adminOnly: true,
-  },
-];
-
-// Items para usuarios normales (viewer)
-const viewerSidebarItems: SidebarItem[] = [
-  {
-    title: 'Usos de Equipos',
-    href: '/admin/equipment-usage',
-    icon: Monitor,
-  },
-  {
-    title: 'Mi Perfil',
-    href: '/admin/profile',
-    icon: User,
   },
 ];
 
@@ -143,7 +97,7 @@ function filterItemsByModule(items: SidebarItem[], userAccess: UserModuleAccess)
     .filter(item => !item.children || item.children.length > 0);
 }
 
-function SidebarItemComponent({ item, collapsed = false }: { item: SidebarItem; collapsed?: boolean }) {
+function SidebarItemComponent({ item, level = 0 }: { item: SidebarItem; level?: number }) {
   const [isPressed, setIsPressed] = useState(false);
   const Icon = item.icon;
 
@@ -155,8 +109,7 @@ function SidebarItemComponent({ item, collapsed = false }: { item: SidebarItem; 
     <Link
       href={item.href || '/admin'}
       className={cn(
-        'flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer',
-        collapsed ? 'justify-center' : 'space-x-3',
+        'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer',
         isPressed
           ? 'bg-gray-900 text-white'
           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -164,88 +117,30 @@ function SidebarItemComponent({ item, collapsed = false }: { item: SidebarItem; 
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
-      title={collapsed ? item.title : undefined}
     >
-      <Icon className="h-5 w-5 flex-shrink-0" />
-      {!collapsed && <span>{item.title}</span>}
+      <Icon className="h-5 w-5" />
+      <span>{item.title}</span>
     </Link>
   );
 }
 
 export function AdminSidebar() {
-  const { effectiveModuleAccess, isSimulating, stopSimulation, user, logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Verificar si el usuario es admin
-  // Verificamos tanto el role.code del sistema de auth como el payloadRole directo
-  const isAdmin = user?.role?.code === 'super_admin' || 
-                  user?.role?.code === 'admin' || 
-                  (user as any)?.payloadRole === 'admin';
-
-  // Seleccionar items según el rol del usuario
-  const baseItems = isAdmin ? adminSidebarItems : viewerSidebarItems;
+  const { effectiveModuleAccess, isSimulating, stopSimulation, user } = useAuth();
 
   // Filtrar items según acceso a módulos (usa effectiveModuleAccess que incluye simulación)
-  const visibleItems = filterItemsByModule(baseItems, effectiveModuleAccess);
-
-  const handleLogout = async () => {
-    try {
-      // Llamar al logout del auth provider
-      await logout();
-      // Limpiar storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('fablab_user');
-        localStorage.removeItem('fablab_user');
-        localStorage.removeItem('user');
-      }
-      // Forzar recarga completa a login
-      window.location.replace('/login');
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      // Aún así intentar redirigir
-      window.location.replace('/login');
-    }
-  };
+  const visibleItems = filterItemsByModule(sidebarItems, effectiveModuleAccess);
 
   return (
-    <aside className={cn(
-      "bg-white border-r border-gray-200 overflow-y-auto flex flex-col transition-all duration-300",
-      collapsed ? "w-[72px]" : "w-64"
-    )}>
-      {/* Logo y botón de colapsar */}
-      <div className="p-3 border-b border-gray-200 flex items-center justify-between min-h-[64px]">
-        <div className={cn(
-          "flex items-center gap-3 overflow-hidden transition-all duration-300",
-          collapsed ? "w-10" : "w-full"
-        )}>
-          <div className="w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden">
-            <Image
-              src="/images/logos/fablab-logo.png"
-              alt="FabLab"
-              width={40}
-              height={40}
-              className="w-full h-full object-contain"
-            />
-          </div>
-
+    <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
+      {/* Logo */}
+      <div className="p-4 border-b border-gray-200 flex items-center gap-3">
+        <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+          <span className="text-white font-bold text-lg">FL</span>
         </div>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            "p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0",
-            collapsed && "ml-0"
-          )}
-          title={collapsed ? "Expandir menú" : "Contraer menú"}
-        >
-          {collapsed ? (
-            <PanelLeft className="h-5 w-5" />
-          ) : (
-            <PanelLeftClose className="h-5 w-5" />
-          )}
-        </button>
+        <span className="font-bold text-lg">Fab Lab ERP</span>
       </div>
 
-      {isSimulating && !collapsed && (
+      {isSimulating && (
         <div className="bg-amber-50 border-b border-amber-200 p-3 text-center">
           <p className="text-xs font-medium text-amber-800 mb-2">
             Modo Simulación
@@ -259,35 +154,17 @@ export function AdminSidebar() {
         </div>
       )}
       
-      <nav className={cn("p-2 space-y-1 flex-1", collapsed && "px-2")}>
+      <nav className="p-4 space-y-1 flex-1">
         {visibleItems.map((item) => (
-          <SidebarItemComponent key={item.title} item={item} collapsed={collapsed} />
+          <SidebarItemComponent key={item.title} item={item} />
         ))}
       </nav>
 
-      {/* Footer con usuario y botón de cerrar sesión */}
-      <div className="border-t border-gray-200 bg-gray-50">
-        {!collapsed && (
-          <div className="p-4 pb-2">
-            <div className="text-sm">
-              <p className="font-medium text-gray-900">{isAdmin ? 'Administrador' : 'Usuario'}</p>
-              <p className="text-gray-600 truncate">{user?.name || user?.email || 'usuario@fablab.com'}</p>
-            </div>
-          </div>
-        )}
-        <div className={cn("p-2", collapsed ? "px-2" : "px-4 pb-4")}>
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              "text-red-600 hover:bg-red-50 hover:text-red-700",
-              collapsed && "justify-center"
-            )}
-            title={collapsed ? "Cerrar Sesión" : undefined}
-          >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span className="ml-3">Cerrar Sesión</span>}
-          </button>
+      {/* Footer con usuario */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm">
+          <p className="font-medium text-gray-900">Administrador</p>
+          <p className="text-gray-600">{user?.email || 'admin@fablab.com'}</p>
         </div>
       </div>
     </aside>
