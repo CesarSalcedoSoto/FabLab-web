@@ -229,6 +229,8 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
                                                     src={imagePreview}
                                                     alt="Preview"
                                                     fill
+                                                    sizes="144px"
+                                                    quality={75}
                                                     className="transition-transform duration-500 group-hover:scale-105"
                                                     style={{ objectFit: 'cover', objectPosition: getObjectPosition(selectedImagePosition) }}
                                                 />

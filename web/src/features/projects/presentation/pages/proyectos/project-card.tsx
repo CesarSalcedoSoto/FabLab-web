@@ -33,6 +33,8 @@ export function ProjectCard({ proyecto, onOpenDetail }: ProjectCardProps) {
                         src={proyecto.imagenes[currentImageIndex]}
                         alt={proyecto.titulo}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        quality={75}
                         className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
 
@@ -79,7 +81,7 @@ export function ProjectCard({ proyecto, onOpenDetail }: ProjectCardProps) {
                             {proyecto.creadores.slice(0, 3).map((creador, idx) => (
                                 creador.avatar ? (
                                     <div key={idx} className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden">
-                                        <Image src={creador.avatar} alt={creador.nombre} fill className="object-cover" />
+                                        <Image src={creador.avatar} alt={creador.nombre} fill sizes="28px" className="object-cover" />
                                     </div>
                                 ) : (
                                     <div key={idx} className="w-7 h-7 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center">

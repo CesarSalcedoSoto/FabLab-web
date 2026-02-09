@@ -138,7 +138,7 @@ export function ProjectForm({ project, isOpen, onOpenChange, onSuccess }: Projec
                             <div className="flex items-center gap-4">
                                 {imagePreview ? (
                                     <div className="relative w-40 h-28 rounded-xl overflow-hidden border-2 group">
-                                        <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                                        <Image src={imagePreview} alt="Preview" fill sizes="160px" className="object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                             <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 bg-white rounded-full"><Camera className="w-4 h-4" /></button>
                                             <button type="button" onClick={() => setImagePreview(null)} className="p-2 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button>

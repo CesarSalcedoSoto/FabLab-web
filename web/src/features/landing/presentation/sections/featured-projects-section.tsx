@@ -224,6 +224,8 @@ function ProjectDetailModal({
                         src={proyecto.imagenes[currentImageIndex]}
                         alt={`${proyecto.titulo} - imagen ${currentImageIndex + 1}`}
                         fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        quality={75}
                         className="object-cover"
                       />
                     </motion.div>

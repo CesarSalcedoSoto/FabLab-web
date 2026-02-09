@@ -4,6 +4,9 @@ import { Footer } from "@/shared/layout/web/footer";
 import { getPayload } from 'payload';
 import config from "@payload-config";
 
+// No prerender en build (requiere DB)
+export const dynamic = 'force-dynamic';
+
 export default async function EquipoPageRoute() {
   const payload = await getPayload({ config });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NextImage from 'next/image';
 import { Image as ImageIcon, X, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/ui/cards/card';
 import { Badge } from '@/shared/ui/badges/badge';
@@ -86,11 +87,13 @@ export function EditorSidebar({
         <CardContent>
           {imagenDestacada ? (
             <div className="relative group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <NextImage
                 src={imagenDestacada.url}
                 alt={imagenDestacada.alternativeText || 'Imagen destacada'}
+                width={400}
+                height={128}
                 className="w-full h-32 object-cover rounded-lg"
+                quality={75}
               />
               <button
                 onClick={() => onImageChange(null)}

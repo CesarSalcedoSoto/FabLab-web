@@ -65,6 +65,8 @@ function PostHero({ post }: { post: Post }) {
                         src={imageUrl}
                         alt={post.titulo}
                         fill
+                        sizes="100vw"
+                        quality={75}
                         className="object-cover opacity-30"
                         priority
                     />
@@ -400,6 +402,8 @@ function RelatedPosts({ currentPostId }: { currentPostId: string }) {
                                             src={imageUrl}
                                             alt={post.titulo}
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 33vw"
+                                            quality={75}
                                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                                         />
                                     ) : (

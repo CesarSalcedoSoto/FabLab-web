@@ -35,6 +35,7 @@ export function TeamSection({ section }: TeamSectionProps) {
                     src={miembro.avatar}
                     alt={miembro.nombre}
                     fill
+                    sizes="96px"
                     className="rounded-full object-cover"
                   />
                 ) : (

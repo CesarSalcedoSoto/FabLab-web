@@ -33,6 +33,7 @@ export function PostCard({ post, variant = 'default' }: PostCardProps) {
                 src={post.imagenPortada}
                 alt={post.titulo}
                 fill
+                sizes="64px"
                 className="object-cover"
               />
             </div>
@@ -61,6 +62,8 @@ export function PostCard({ post, variant = 'default' }: PostCardProps) {
                 src={post.imagenPortada}
                 alt={post.titulo}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                quality={75}
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>

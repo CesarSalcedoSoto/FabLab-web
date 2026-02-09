@@ -624,3 +624,244 @@ function calculateEndTime(startTime: string, duration: string): string {
   const minutes = durationMap[duration] || 60;
   return new Date(start.getTime() + minutes * 60 * 1000).toISOString();
 }
+
+// ===========================================================================
+// RESERVAS DE EQUIPOS
+// ===========================================================================
+
+export interface EquipmentReservation {
+  id: string;
+  equipmentId: string;
+  equipmentName: string;
+  userId: string;
+  userName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  description?: string;
+  status: "confirmed" | "cancelled" | "completed";
+  createdAt: string;
+}
+
+/** Horarios disponibles (07:00 a 22:30 en bloques de 30 min) */
+export async function getAvailableTimeSlots(): Promise<string[]> {
+  const slots: string[] = [];
+  for (let h = 7; h <= 22; h++) {
+    slots.push(`${h.toString().padStart(2, '0')}:00`);
+    if (h < 22 || (h === 22 && true)) {
+      slots.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+  }
+  return slots;
+}
+
+/**
+ * Obtener reservas de un equipo en una fecha específica
+ */
+export async function getReservationsForDate(
+  equipmentId: string, 
+  date: string
+): Promise<EquipmentReservation[]> {
+  try {
+    const payload = await getPayload({ config });
+
+    // Buscar reservas del equipo en la fecha dada
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const { docs } = await payload.find({
+      collection: "equipment-reservations",
+      where: {
+        and: [
+          { equipmentId: { equals: equipmentId } },
+          { date: { greater_than_equal: dayStart.toISOString() } },
+          { date: { less_than_equal: dayEnd.toISOString() } },
+          { status: { not_equals: "cancelled" } },
+        ],
+      },
+      sort: "startTime",
+      limit: 100,
+      depth: 1,
+    });
+
+    return docs.map((doc: any) => ({
+      id: String(doc.id),
+      equipmentId: doc.equipmentId,
+      equipmentName: doc.equipmentName,
+      userId: typeof doc.user === 'object' ? String(doc.user.id) : String(doc.user),
+      userName: doc.userName || (typeof doc.user === 'object' ? doc.user.name : 'Usuario'),
+      date: doc.date,
+      startTime: doc.startTime,
+      endTime: doc.endTime,
+      description: doc.description,
+      status: doc.status,
+      createdAt: doc.createdAt,
+    }));
+  } catch (error) {
+    console.error("[Reservations] Error:", error);
+    return [];
+  }
+}
+
+/**
+ * Obtener todas las reservas futuras (para actividad reciente)
+ */
+export async function getAllReservations(): Promise<EquipmentReservation[]> {
+  try {
+    const payload = await getPayload({ config });
+
+    const { docs } = await payload.find({
+      collection: "equipment-reservations",
+      sort: "-createdAt",
+      limit: 50,
+      depth: 1,
+      where: {
+        status: { not_equals: "cancelled" },
+      },
+    });
+
+    return docs.map((doc: any) => ({
+      id: String(doc.id),
+      equipmentId: doc.equipmentId,
+      equipmentName: doc.equipmentName,
+      userId: typeof doc.user === 'object' ? String(doc.user.id) : String(doc.user),
+      userName: doc.userName || (typeof doc.user === 'object' ? doc.user.name : 'Usuario'),
+      date: doc.date,
+      startTime: doc.startTime,
+      endTime: doc.endTime,
+      description: doc.description,
+      status: doc.status,
+      createdAt: doc.createdAt,
+    }));
+  } catch (error) {
+    console.error("[Reservations] Error:", error);
+    return [];
+  }
+}
+
+/**
+ * Crear una reserva de equipo
+ */
+export async function createReservation(data: {
+  equipmentId: string;
+  equipmentName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  description?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const payload = await getPayload({ config });
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { success: false, error: "Debes iniciar sesión para reservar un equipo" };
+    }
+
+    if (!data.equipmentId || !data.date || !data.startTime || !data.endTime) {
+      return { success: false, error: "Todos los campos son obligatorios" };
+    }
+
+    // Validar que startTime < endTime
+    if (data.startTime >= data.endTime) {
+      return { success: false, error: "La hora de inicio debe ser anterior a la hora de fin" };
+    }
+
+    // Verificar conflictos: no puede existir otra reserva activa en el mismo equipo/fecha/horario
+    const dayStart = new Date(data.date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(data.date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const { docs: existing } = await payload.find({
+      collection: "equipment-reservations",
+      where: {
+        and: [
+          { equipmentId: { equals: data.equipmentId } },
+          { date: { greater_than_equal: dayStart.toISOString() } },
+          { date: { less_than_equal: dayEnd.toISOString() } },
+          { status: { not_equals: "cancelled" } },
+        ],
+      },
+      limit: 200,
+    });
+
+    // Verificar solapamiento de horarios
+    const hasConflict = existing.some((res: any) => {
+      return data.startTime < res.endTime && data.endTime > res.startTime;
+    });
+
+    if (hasConflict) {
+      return { success: false, error: "Ya existe una reserva en ese horario. Elige otro bloque." };
+    }
+
+    await payload.create({
+      collection: "equipment-reservations",
+      data: {
+        equipmentId: data.equipmentId,
+        equipmentName: data.equipmentName,
+        user: user.id,
+        userName: user.name,
+        date: new Date(data.date).toISOString(),
+        startTime: data.startTime,
+        endTime: data.endTime,
+        description: data.description || "",
+        status: "confirmed",
+      },
+    });
+
+    revalidatePath("/admin/equipment-usage");
+    return { success: true };
+  } catch (error) {
+    console.error("[Reservations] Error creating:", error);
+    return { success: false, error: "Error al crear la reserva" };
+  }
+}
+
+/**
+ * Cancelar una reserva
+ */
+export async function cancelReservation(
+  reservationId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const payload = await getPayload({ config });
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { success: false, error: "Debes iniciar sesión" };
+    }
+
+    // Buscar la reserva
+    const reservation = await payload.findByID({
+      collection: "equipment-reservations",
+      id: reservationId,
+      depth: 1,
+    });
+
+    if (!reservation) {
+      return { success: false, error: "Reserva no encontrada" };
+    }
+
+    const resUserId = typeof reservation.user === 'object' ? String((reservation.user as any).id) : String(reservation.user);
+
+    // Solo el usuario que reservó o un admin pueden cancelar
+    if (resUserId !== user.idString && !user.isAdmin) {
+      return { success: false, error: "No tienes permiso para cancelar esta reserva" };
+    }
+
+    await payload.update({
+      collection: "equipment-reservations",
+      id: reservationId,
+      data: { status: "cancelled" },
+    });
+
+    revalidatePath("/admin/equipment-usage");
+    return { success: true };
+  } catch (error) {
+    console.error("[Reservations] Error cancelling:", error);
+    return { success: false, error: "Error al cancelar la reserva" };
+  }
+}

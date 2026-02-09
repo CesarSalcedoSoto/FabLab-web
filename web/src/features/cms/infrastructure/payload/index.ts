@@ -17,7 +17,7 @@
 
 // Colecciones
 export { collections } from './collections';
-export { Users, Media, Posts, Categories, TeamMembers, Projects, EquipmentRequests, EquipmentUsage } from './collections';
+export { Users, Media, Posts, Categories, TeamMembers, Projects, EquipmentRequests, EquipmentUsage, EquipmentReservations } from './collections';
 
 // Globals
 export { globals } from './globals';

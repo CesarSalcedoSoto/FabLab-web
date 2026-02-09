@@ -23,6 +23,7 @@ export { Services } from './Services';
 export { Equipment } from './Equipment';
 export { EquipmentRequests } from './EquipmentRequests';
 export { EquipmentUsage } from './EquipmentUsage';
+export { EquipmentReservations } from './EquipmentReservations';
 
 // Inventario
 export { InventoryItems } from './InventoryItems';
@@ -52,6 +53,7 @@ import { Services } from './Services';
 import { Equipment } from './Equipment';
 import { EquipmentRequests } from './EquipmentRequests';
 import { EquipmentUsage } from './EquipmentUsage';
+import { EquipmentReservations } from './EquipmentReservations';
 import { InventoryItems } from './InventoryItems';
 import { TeamMembers } from './TeamMembers';
 import { Projects } from './Projects';
@@ -72,6 +74,7 @@ export const collections = [
     Equipment,
     EquipmentRequests,
     EquipmentUsage,
+    EquipmentReservations,
     // Inventario
     InventoryItems,
     // Equipo

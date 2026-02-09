@@ -616,7 +616,7 @@ export default function ProjectsAdminPage() {
                     <div className="relative">
                         {imagePreview ? (
                             <div className="relative w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-200">
-                                <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                                <Image src={imagePreview} alt="Preview" fill sizes="128px" className="object-cover" />
                                 <button type="button" onClick={() => { setImagePreview(null); setFormData({ ...formData, image: null }); }} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
                                     <X className="h-3 w-3" />
                                 </button>
@@ -771,6 +771,7 @@ export default function ProjectsAdminPage() {
                                 src={item.preview || item.url || ''} 
                                 alt={`Galería ${index + 1}`} 
                                 fill 
+                                sizes="96px"
                                 className="object-cover" 
                             />
                             <button 

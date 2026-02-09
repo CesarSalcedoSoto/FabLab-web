@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import type { TechnologiesSection as TechnologiesSectionType } from "@/features/projecs/domain";
 
 interface TechnologiesSectionProps {
@@ -67,13 +68,13 @@ export function TechnologiesSection({ section }: TechnologiesSectionProps) {
                       <div className="flex flex-col items-center text-center">
                         {tech.icono ? (
                           <div className="w-12 h-12 mb-3 flex items-center justify-center relative">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                               src={tech.icono}
                               alt={tech.nombre}
                               width={40}
                               height={40}
                               className="object-contain"
+                              quality={75}
                             />
                           </div>
                         ) : (

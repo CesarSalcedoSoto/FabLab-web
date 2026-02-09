@@ -31,24 +31,41 @@ export const Media: CollectionConfig = {
     },
     upload: {
         staticDir: 'media',
+        // Forzar conversión a WebP para imágenes (menor peso, misma calidad)
+        formatOptions: {
+            format: 'webp',
+            options: {
+                quality: 80,
+            },
+        },
         imageSizes: [
             {
                 name: 'thumbnail',
                 width: 400,
                 height: 300,
                 position: 'centre',
+                formatOptions: { format: 'webp', options: { quality: 75 } },
             },
             {
                 name: 'card',
                 width: 768,
                 height: 1024,
                 position: 'centre',
+                formatOptions: { format: 'webp', options: { quality: 80 } },
             },
             {
                 name: 'tablet',
                 width: 1024,
                 height: undefined,
                 position: 'centre',
+                formatOptions: { format: 'webp', options: { quality: 80 } },
+            },
+            {
+                name: 'og',
+                width: 1200,
+                height: 630,
+                position: 'centre',
+                formatOptions: { format: 'webp', options: { quality: 80 } },
             },
         ],
         adminThumbnail: 'thumbnail',

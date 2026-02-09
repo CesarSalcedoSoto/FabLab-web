@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import NextImage from 'next/image';
 import { 
   Upload, 
   X, 
@@ -157,11 +158,13 @@ export function ImageUploader({
           className="relative overflow-hidden rounded-lg border bg-muted"
           style={{ aspectRatio }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <NextImage
             src={value.url}
             alt={value.alternativeText || value.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
+            quality={75}
           />
           
           {/* Overlay con acciones */}
@@ -327,11 +330,13 @@ export function ImageGallery({
               : "border-transparent hover:border-primary/50"
           )}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <NextImage
             src={image.url}
             alt={image.alternativeText || image.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 33vw, 20vw"
+            className="object-cover"
+            quality={70}
           />
           
           {/* Overlay */}

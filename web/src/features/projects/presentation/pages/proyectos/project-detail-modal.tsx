@@ -76,6 +76,8 @@ export function ProjectDetailModal({ proyecto, isOpen, onClose }: ProjectDetailM
                                     src={proyecto.imagenes[currentImageIndex]}
                                     alt={`${proyecto.titulo} - Imagen ${currentImageIndex + 1}`}
                                     fill
+                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                    quality={80}
                                     className="object-cover"
                                 />
 
@@ -129,7 +131,7 @@ export function ProjectDetailModal({ proyecto, isOpen, onClose }: ProjectDetailM
                                         <div key={idx} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 pr-5">
                                             {creador.avatar ? (
                                                 <div className="relative w-12 h-12 rounded-full overflow-hidden">
-                                                    <Image src={creador.avatar} alt={creador.nombre} fill className="object-cover" />
+                                                    <Image src={creador.avatar} alt={creador.nombre} fill sizes="48px" className="object-cover" />
                                                 </div>
                                             ) : (
                                                 <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">

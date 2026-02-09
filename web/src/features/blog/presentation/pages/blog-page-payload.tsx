@@ -145,6 +145,8 @@ function PostCardFeatured({ post }: { post: Post }) {
                             src={imageUrl}
                             alt={post.titulo}
                             fill
+                            sizes="(max-width: 768px) 100vw, 60vw"
+                            quality={75}
                             className="object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                     )}
@@ -222,6 +224,8 @@ function PostCard({ post, index }: { post: Post; index: number }) {
                         src={imageUrl}
                         alt={post.titulo}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        quality={75}
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
@@ -366,6 +370,7 @@ function Sidebar({ postsRecientes }: { postsRecientes: Post[] }) {
                                             src={(post.imagenDestacada as any)?.url || post.imagenDestacada as string}
                                             alt={post.titulo}
                                             fill
+                                            sizes="48px"
                                             className="object-cover group-hover:opacity-80 transition-opacity"
                                         />
                                     ) : (

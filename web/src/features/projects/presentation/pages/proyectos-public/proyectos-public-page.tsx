@@ -99,6 +99,8 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                                     src={project.featuredImage}
                                                     alt={project.title}
                                                     fill
+                                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                                    quality={75}
                                                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                                                 />
                                             ) : (
@@ -195,6 +197,8 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                                     src={project.featuredImage}
                                                     alt={project.title}
                                                     fill
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                                    quality={75}
                                                     className="object-cover group-hover:scale-110 transition-transform duration-500"
                                                 />
                                             ) : (
@@ -285,6 +289,8 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                     src={selectedProject.featuredImage}
                                     alt={selectedProject.title}
                                     fill
+                                    sizes="(max-width: 1024px) 100vw, 60vw"
+                                    quality={80}
                                     className="object-cover"
                                 />
                             ) : (

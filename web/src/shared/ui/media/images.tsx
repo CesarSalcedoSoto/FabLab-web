@@ -50,6 +50,8 @@ export function ResponsiveImage({
         width={width}
         height={height}
         priority={priority}
+        quality={80}
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className={cn(
           "w-full h-auto object-cover transition-transform duration-300 hover:scale-105",
           className

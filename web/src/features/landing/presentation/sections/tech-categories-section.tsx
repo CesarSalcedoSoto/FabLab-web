@@ -1,155 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, Box } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/shared/ui/buttons/button";
-
-interface TechBox {
-  id: string;
-  titulo: string;
-  imagenes: string[];
-  descripcion?: string;
-}
-
-interface TechCategory {
-  id: string;
-  label: string;
-  color: string;
-  tecnologias: TechBox[];
-}
-
-// Datos con múltiples imágenes
-const techCategories: TechCategory[] = [
-  {
-    id: "hardware",
-    label: "Hardware & Fabricación",
-    color: "from-blue-500 to-cyan-500",
-    tecnologias: [
-      {
-        id: "h1",
-        titulo: "Impresoras 3D FDM",
-        imagenes: [
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Prusa, Ender, Ultimaker",
-      },
-      {
-        id: "h2",
-        titulo: "Impresoras 3D Resina",
-        imagenes: [
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Elegoo, Anycubic, Formlabs",
-      },
-      {
-        id: "h3",
-        titulo: "Cortadora Láser",
-        imagenes: [
-          "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1565689157206-0fddef7589a2?w=400&h=300&fit=crop",
-        ],
-        descripcion: "CO2 y Fibra óptica",
-      },
-      {
-        id: "h4",
-        titulo: "CNC Router",
-        imagenes: [
-          "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Fresado de precisión",
-      },
-      {
-        id: "h5",
-        titulo: "Escáner 3D",
-        imagenes: [
-          "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Digitalización de objetos",
-      },
-      {
-        id: "h6",
-        titulo: "Soldadura",
-        imagenes: [
-          "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Estaciones de soldadura SMD",
-      },
-    ],
-  },
-  {
-    id: "software",
-    label: "Software & Desarrollo",
-    color: "from-purple-500 to-pink-500",
-    tecnologias: [
-      {
-        id: "s1",
-        titulo: "CAD/CAM",
-        imagenes: [
-          "https://images.unsplash.com/photo-1545670723-196ed0954986?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581094794329-c8112d89b8a3?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Fusion 360, SolidWorks, FreeCAD",
-      },
-      {
-        id: "s2",
-        titulo: "Slicers",
-        imagenes: [
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-        ],
-        descripcion: "PrusaSlicer, Cura, Bambu Studio",
-      },
-      {
-        id: "s3",
-        titulo: "Arduino IDE",
-        imagenes: [
-          "https://images.unsplash.com/photo-1553406830-ef2513450d76?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1608564697071-ddf911d81370?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Programación de microcontroladores",
-      },
-      {
-        id: "s4",
-        titulo: "VS Code",
-        imagenes: [
-          "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Desarrollo web y aplicaciones",
-      },
-      {
-        id: "s5",
-        titulo: "Blender",
-        imagenes: [
-          "https://images.unsplash.com/photo-1617802690992-15d93263d3a9?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Modelado y animación 3D",
-      },
-      {
-        id: "s6",
-        titulo: "KiCad",
-        imagenes: [
-          "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1553406830-ef2513450d76?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Diseño de PCBs",
-      },
-    ],
-  },
-];
+import { getEquipmentByCategory, type LandingTechCategory, type LandingTechBox } from "./tecnologias-actions";
 
 interface TechCardProps {
-  tech: TechBox;
+  tech: LandingTechBox;
   index: number;
 }
 
@@ -157,10 +17,11 @@ interface TechCardProps {
 const TechCard = memo(function TechCard({ tech, index }: TechCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const hasImages = tech.imagenes.length > 0;
 
   // Cambiar imagen solo cuando está en hover
   useEffect(() => {
-    if (!isHovering) return;
+    if (!isHovering || tech.imagenes.length <= 1) return;
     
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % tech.imagenes.length);
@@ -184,38 +45,46 @@ const TechCard = memo(function TechCard({ tech, index }: TechCardProps) {
       onMouseLeave={handleMouseLeave}
     >
       <div className="relative h-36 overflow-hidden bg-gray-100">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentImageIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={tech.imagenes[currentImageIndex]}
-              alt={`${tech.titulo} - imagen ${currentImageIndex + 1}`}
-              fill
-              sizes="(max-width: 640px) 224px, 256px"
-              className="object-cover"
-              priority={index < 4}
-            />
-          </motion.div>
-        </AnimatePresence>
+        {hasImages ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={tech.imagenes[currentImageIndex]}
+                alt={`${tech.titulo} - imagen ${currentImageIndex + 1}`}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
+                quality={75}
+              />
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+            <Box className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         
         {/* Indicadores */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-          {tech.imagenes.map((_, idx) => (
-            <span
-              key={idx}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                idx === currentImageIndex ? "bg-white w-3" : "bg-white/50"
-              }`}
-            />
-          ))}
-        </div>
+        {tech.imagenes.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+            {tech.imagenes.map((_, idx) => (
+              <span
+                key={idx}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  idx === currentImageIndex ? "bg-white w-3" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="p-3">
@@ -231,7 +100,7 @@ const TechCard = memo(function TechCard({ tech, index }: TechCardProps) {
 });
 
 interface CategoryCarouselProps {
-  category: TechCategory;
+  category: LandingTechCategory;
   categoryIndex: number;
 }
 
@@ -321,12 +190,37 @@ function CategoryCarousel({ category, categoryIndex }: CategoryCarouselProps) {
 
 export function TechCategoriesSection() {
   const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<LandingTechCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Cargar equipos de la BD
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadEquipment = async () => {
+      try {
+        const data = await getEquipmentByCategory();
+        if (isMounted) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Error loading equipment categories:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadEquipment();
+    return () => { isMounted = false; };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || isLoading) {
     return (
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
@@ -343,6 +237,23 @@ export function TechCategoriesSection() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6 text-center">
+          <Link href="/tecnologias" className="inline-block">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 hover:text-blue-600 transition-colors cursor-pointer">
+              Tecnologías
+            </h2>
+          </Link>
+          <p className="text-lg text-gray-600">
+            Próximamente se mostrarán las tecnologías disponibles.
+          </p>
         </div>
       </section>
     );
@@ -370,7 +281,7 @@ export function TechCategoriesSection() {
         </motion.div>
 
         {/* Categorías con carruseles */}
-        {techCategories.map((category, index) => (
+        {categories.map((category, index) => (
           <CategoryCarousel key={category.id} category={category} categoryIndex={index} />
         ))}
       </div>

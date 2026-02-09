@@ -235,6 +235,8 @@ export function TeamSection() {
                       src={member.image}
                       alt={member.name}
                       fill
+                      sizes="80px"
+                      quality={75}
                       className="object-cover group-hover:scale-110 transition-transform duration-700"
                       style={{ objectPosition: member.imagePosition || '50% 50%' }}
                     />

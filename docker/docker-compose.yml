@@ -1,114 +1,123 @@
-version: '3.8'
+# =====================================================
+# Docker Compose - FabLab para Hostinger VPS
+# PostgreSQL 16 + Next.js/Payload CMS + Nginx (caché)
+# =====================================================
+#
+# Requisitos Hostinger VPS:
+#   - Plan KVM 2 (2GB RAM mínimo recomendado)
+#   - Ubuntu 22.04 con Docker preinstalado
+#   - Puertos 80 y 443 abiertos en firewall
+#
+# Despliegue:
+#   1. Clonar repo en el VPS:  git clone <repo> /opt/fablab
+#   2. cd /opt/fablab/docker
+#   3. cp .env.example .env  (editar con valores reales)
+#   4. docker compose up -d --build
+#
+# Actualizar:
+#   ./deploy.sh
+#
+# =====================================================
 
 services:
   # ========================
-  # MySQL Database - Puerto interno 3306
+  # PostgreSQL 16 (Alpine = menor consumo RAM)
   # ========================
-  db:
-    image: mysql:8.4
-    container_name: fablab-db
+  postgres:
+    image: postgres:16-alpine
+    container_name: fablab-postgres
     restart: unless-stopped
-    env_file:
-      - ../.env
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-FabLab2025!Root}
-      MYSQL_DATABASE: fablab_strapi
-      MYSQL_USER: fablab
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-FabLab2025!Secure}
-    ports:
-      - "127.0.0.1:9013:3306" # Puerto externo 9013
+      POSTGRES_DB: fablab_blog
+      POSTGRES_USER: ${POSTGRES_USER:-fablab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fablab_secret_2024}
+      # Optimizar para VPS con poca RAM
+      POSTGRES_SHARED_BUFFERS: 128MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 256MB
+      POSTGRES_WORK_MEM: 4MB
     volumes:
-      - fablab-mysql-data:/var/lib/mysql
-    networks:
-      - fablab-network
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      - ./db:/docker-entrypoint-initdb.d/dump
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-FabLab2025!Root}" ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fablab} -d fablab_blog"]
+      interval: 15s
       timeout: 5s
       retries: 5
-
-  # ========================
-  # CMS (Strapi/Payload) - Puerto 9010
-  # ========================
-  # Nota: El servicio 'cms' original apuntaba a Strapi. 
-  # Si se usa Payload integrado en Web, este servicio podría ser redundante.
-  # Se mantiene por compatibilidad legacy hasta migración total.
-  cms:
-    build:
-      context: ../cms
-      dockerfile: Dockerfile
-    container_name: fablab-cms
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - ../.env
-    environment:
-      DATABASE_CLIENT: mysql
-      DATABASE_HOST: db
-      DATABASE_PORT: 3306
-      DATABASE_NAME: fablab_strapi
-      DATABASE_USERNAME: fablab
-      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-FabLab2025!Secure}
-      DATABASE_SSL: "false"
-      HOST: 0.0.0.0
-      PORT: 1337
-      NODE_ENV: production
-    ports:
-      - "127.0.0.1:3010:1337"
-    volumes:
-      - cms-uploads:/app/public/uploads
+      start_period: 30s
     networks:
       - fablab-network
+    # Limitar memoria en VPS pequeños
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ========================
-  # WEB (Next.js + Payload) - Puerto 9011
+  # Next.js + Payload CMS
   # ========================
   web:
     build:
       context: ../web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_STRAPI_URL: ${NEXT_PUBLIC_STRAPI_URL}
-        NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
-        NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
-        NEXTAUTH_URL: ${NEXTAUTH_URL}
-        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+        DATABASE_URL: postgres://${POSTGRES_USER:-fablab}:${POSTGRES_PASSWORD:-fablab_secret_2024}@postgres:5432/fablab_blog
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET:-fablab-payload-secret-change-me}
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost}
+        NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL:-}
     container_name: fablab-web
     restart: unless-stopped
-    env_file:
-      - ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3000
-      STRAPI_API_URL: http://cms:1337
-    ports:
-      - "127.0.0.1:3011:3000"
-    depends_on:
-      - cms
+      DATABASE_URL: postgres://${POSTGRES_USER:-fablab}:${POSTGRES_PASSWORD:-fablab_secret_2024}@postgres:5432/fablab_blog
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-fablab-payload-secret-change-me}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost}
+      NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL:-}
+    volumes:
+      - media_data:/app/media
+    expose:
+      - "3000"
     networks:
       - fablab-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   # ========================
-  # UPDATER (Auto-Update Sidecar)
+  # Nginx - Proxy Inverso + Caché + SSL ready
   # ========================
-  updater:
-    build: 
-      context: ./updater
-    container_name: fablab-updater
+  nginx:
+    image: nginx:alpine
+    container_name: fablab-nginx
     restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ../:/app            # Mount project root to check for git changes
-      - /var/run/docker.sock:/var/run/docker.sock # Control sibling containers
-    environment:
-      UPDATE_INTERVAL: 300 # Check every 5 minutes
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - media_data:/app/media:ro
     networks:
       - fablab-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
 volumes:
-  fablab-mysql-data:
-  cms-uploads:
+  postgres_data:
+    driver: local
+  media_data:
+    driver: local
+  nginx_cache:
+    driver: local
 
 networks:
   fablab-network:

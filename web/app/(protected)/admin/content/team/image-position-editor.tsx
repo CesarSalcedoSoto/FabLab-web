@@ -166,6 +166,7 @@ export function ImagePositionEditor({
                                 src={imageUrl}
                                 alt="Editar posición"
                                 fill
+                                sizes="(max-width: 768px) 100vw, 400px"
                                 className="object-cover pointer-events-none"
                                 style={{ 
                                     objectPosition: `${position.x}% ${position.y}%`,
@@ -273,6 +274,7 @@ export function ImagePositionEditor({
                                 src={imageUrl}
                                 alt="Preview circular"
                                 fill
+                                sizes="80px"
                                 className="object-cover"
                                 style={{ objectPosition: `${position.x}% ${position.y}%` }}
                             />

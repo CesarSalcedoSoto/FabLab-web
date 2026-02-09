@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/cards/card";
 import { Button } from "@/shared/ui/buttons/button";
 import { Input } from "@/shared/ui/inputs/input";
@@ -55,6 +56,10 @@ import {
   CalendarClock,
   Calendar,
   Settings,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CalendarPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -67,6 +72,11 @@ import {
   getUsageHistory,
   getCurrentUserIsAdmin,
   toggleEquipmentMaintenance,
+  getReservationsForDate,
+  getAllReservations,
+  createReservation,
+  cancelReservation,
+  type EquipmentReservation,
 } from "./actions";
 
 interface Equipment {
@@ -169,6 +179,18 @@ export default function EquipmentUsagePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("equipment");
   
+  // Reservation state
+  const [reservations, setReservations] = useState<EquipmentReservation[]>([]);
+  const [allReservations, setAllReservations] = useState<EquipmentReservation[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedEquipForReserve, setSelectedEquipForReserve] = useState<Equipment | null>(null);
+  const [isReserveDialogOpen, setIsReserveDialogOpen] = useState(false);
+  const [reserveForm, setReserveForm] = useState({
+    startTime: "09:00",
+    endTime: "10:00",
+    description: "",
+  });
+  
   const [requestForm, setRequestForm] = useState({
     equipmentName: "",
     description: "",
@@ -188,18 +210,20 @@ export default function EquipmentUsagePage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [equipmentData, requestsData, historyData, userId, adminStatus] = await Promise.all([
+      const [equipmentData, requestsData, historyData, userId, adminStatus, allRes] = await Promise.all([
         getActiveEquipment(),
         getEquipmentRequests(),
         getUsageHistory(),
         getCurrentUserId(),
         getCurrentUserIsAdmin(),
+        getAllReservations(),
       ]);
       setEquipment(equipmentData);
       setRequests(requestsData);
       setUsageHistory(historyData);
       setCurrentUserId(userId);
       setIsAdmin(adminStatus);
+      setAllReservations(allRes);
     } catch (error) {
       console.error("Error cargando datos:", error);
       toast.error("Error al cargar los datos");
@@ -272,6 +296,103 @@ export default function EquipmentUsagePage() {
       setIsSubmitting(false);
     }
   };
+
+  // ===================== RESERVATION HANDLERS =====================
+  
+  const loadReservationsForDate = async (equipmentId: string, date: Date) => {
+    try {
+      const dateStr = date.toISOString().split('T')[0];
+      const res = await getReservationsForDate(equipmentId, dateStr);
+      setReservations(res);
+    } catch {
+      setReservations([]);
+    }
+  };
+
+  const handleOpenReserveDialog = (item: Equipment) => {
+    setSelectedEquipForReserve(item);
+    setSelectedDate(new Date());
+    setReserveForm({ startTime: "09:00", endTime: "10:00", description: "" });
+    setIsReserveDialogOpen(true);
+    loadReservationsForDate(item.id, new Date());
+  };
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    if (selectedEquipForReserve) {
+      loadReservationsForDate(selectedEquipForReserve.id, date);
+    }
+  };
+
+  const handleCreateReservation = async () => {
+    if (!selectedEquipForReserve) return;
+
+    try {
+      setIsSubmitting(true);
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const result = await createReservation({
+        equipmentId: selectedEquipForReserve.id,
+        equipmentName: selectedEquipForReserve.name,
+        date: dateStr,
+        startTime: reserveForm.startTime,
+        endTime: reserveForm.endTime,
+        description: reserveForm.description || undefined,
+      });
+
+      if (result.success) {
+        toast.success(`Reserva creada para ${selectedEquipForReserve.name}`);
+        loadReservationsForDate(selectedEquipForReserve.id, selectedDate);
+        loadData();
+        setReserveForm({ startTime: "09:00", endTime: "10:00", description: "" });
+      } else {
+        toast.error(result.error || "Error al crear la reserva");
+      }
+    } catch {
+      toast.error("Error al crear la reserva");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelReservation = async (reservationId: string) => {
+    try {
+      setIsSubmitting(true);
+      const result = await cancelReservation(reservationId);
+      if (result.success) {
+        toast.success("Reserva cancelada");
+        if (selectedEquipForReserve) {
+          loadReservationsForDate(selectedEquipForReserve.id, selectedDate);
+        }
+        loadData();
+      } else {
+        toast.error(result.error || "Error al cancelar");
+      }
+    } catch {
+      toast.error("Error al cancelar la reserva");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isTimeSlotOccupied = (slot: string) => {
+    return reservations.some(r => slot >= r.startTime && slot < r.endTime);
+  };
+
+  const getSlotReservation = (slot: string) => {
+    return reservations.find(r => slot >= r.startTime && slot < r.endTime);
+  };
+
+  const timeSlots = (() => {
+    const slots: string[] = [];
+    for (let h = 7; h <= 22; h++) {
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      if (h < 22) slots.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+    slots.push('22:30');
+    return slots;
+  })();
+
+  // ===================== END RESERVATION HANDLERS =====================
 
   const handleSubmitRequest = async () => {
     if (!requestForm.equipmentName.trim() || !requestForm.justification.trim()) {
@@ -440,10 +561,14 @@ export default function EquipmentUsagePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="equipment" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <Package className="h-4 w-4" />
             <span className="hidden xs:inline">Equipos</span>
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+            <CalendarPlus className="h-4 w-4" />
+            <span className="hidden xs:inline">Reservas</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <History className="h-4 w-4" />
@@ -511,11 +636,13 @@ export default function EquipmentUsagePage() {
                       {/* Equipment image or icon fallback */}
                       {item.image ? (
                         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={item.image}
                             alt={item.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                            className="object-cover"
+                            quality={75}
                           />
                         </div>
                       ) : (
@@ -616,6 +743,148 @@ export default function EquipmentUsagePage() {
                 );
               })
             )}
+          </div>
+        </TabsContent>
+
+        {/* Reservations Tab */}
+        <TabsContent value="reservations" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left: Equipment list for reserving */}
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="h-4 w-4 text-orange-500" />
+                  Seleccionar Equipo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {equipment.filter(e => e.status !== "maintenance").map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleOpenReserveDialog(item)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all hover:shadow-md ${
+                      selectedEquipForReserve?.id === item.id 
+                        ? "border-orange-500 bg-orange-50" 
+                        : "border-gray-200 hover:border-orange-300"
+                    }`}
+                  >
+                    {item.image ? (
+                      <Image src={item.image} alt={item.name} width={40} height={40} className="w-10 h-10 rounded-lg object-cover" quality={70} />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <Package className="h-5 w-5 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500">{item.category}</p>
+                    </div>
+                    <CalendarPlus className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Right: Recent reservations / Activity */}
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-orange-500" />
+                  Actividad Reciente de Reservas
+                </CardTitle>
+                <CardDescription>Últimas reservas realizadas en el FabLab</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {allReservations.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No hay reservas todavía</p>
+                    <p className="text-sm mt-1">Selecciona un equipo para reservar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                    {allReservations.map((res) => {
+                      const resDate = new Date(res.date);
+                      const isPast = resDate < new Date(new Date().toDateString());
+                      const isOwn = res.userId === currentUserId;
+
+                      return (
+                        <div 
+                          key={res.id} 
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                            res.status === "cancelled" 
+                              ? "bg-gray-50 border-gray-200 opacity-60"
+                              : isPast 
+                              ? "bg-gray-50 border-gray-200"
+                              : "bg-orange-50 border-orange-200"
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            res.status === "cancelled" ? "bg-gray-200" : isPast ? "bg-gray-200" : "bg-orange-200"
+                          }`}>
+                            <Calendar className={`h-5 w-5 ${
+                              res.status === "cancelled" ? "text-gray-500" : isPast ? "text-gray-600" : "text-orange-700"
+                            }`} />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm text-gray-900">{res.userName}</span>
+                              <span className="text-gray-400">•</span>
+                              <span className="text-sm text-gray-700">{res.equipmentName}</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {resDate.toLocaleDateString('es-CL')}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {res.startTime} - {res.endTime}
+                              </span>
+                            </div>
+                            {res.description && (
+                              <p className="text-xs text-gray-600 mt-1 italic">&ldquo;{res.description}&rdquo;</p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {res.status === "cancelled" ? (
+                              <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full">Cancelada</span>
+                            ) : !isPast && isOwn ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleCancelReservation(res.id)}
+                                disabled={isSubmitting}
+                                title="Cancelar reserva"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            ) : !isPast && isAdmin ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleCancelReservation(res.id)}
+                                disabled={isSubmitting}
+                                title="Cancelar reserva (admin)"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                            <div className={`w-2 h-2 rounded-full ${
+                              res.status === "cancelled" ? "bg-gray-400" : isPast ? "bg-gray-400" : "bg-orange-500"
+                            }`} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -943,6 +1212,244 @@ export default function EquipmentUsagePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reservation Dialog */}
+      <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-orange-500" />
+              Reservar Equipo
+            </DialogTitle>
+            <DialogDescription>
+              {selectedEquipForReserve && (
+                <span>Equipo: <strong>{selectedEquipForReserve.name}</strong></span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            {/* Mini Calendar */}
+            <div className="space-y-2">
+              <Label>Fecha</Label>
+              <MiniCalendar 
+                selectedDate={selectedDate} 
+                onDateChange={handleDateChange} 
+              />
+            </div>
+
+            {/* Time Slots Visual */}
+            <div className="space-y-2">
+              <Label>Horario disponible — {selectedDate.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</Label>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                {timeSlots.map((slot) => {
+                  const occupied = isTimeSlotOccupied(slot);
+                  const slotRes = getSlotReservation(slot);
+                  const isSelected = slot >= reserveForm.startTime && slot < reserveForm.endTime;
+
+                  return (
+                    <button
+                      key={slot}
+                      disabled={occupied}
+                      onClick={() => {
+                        // Click to set start, shift end by 1 hour
+                        const [h, m] = slot.split(':').map(Number);
+                        const endH = h + 1;
+                        const endTime = endH > 22 ? "22:30" : `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        setReserveForm(prev => ({ ...prev, startTime: slot, endTime }));
+                      }}
+                      className={`text-xs py-1.5 px-1 rounded-md border transition-all ${
+                        occupied 
+                          ? "bg-red-100 border-red-300 text-red-600 cursor-not-allowed line-through" 
+                          : isSelected
+                          ? "bg-orange-500 border-orange-600 text-white font-medium"
+                          : "bg-white border-gray-200 text-gray-700 hover:border-orange-400 hover:bg-orange-50"
+                      }`}
+                      title={occupied && slotRes ? `Reservado por ${slotRes.userName}` : `Disponible: ${slot}`}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border border-gray-200" /> Disponible</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 border border-red-300" /> Ocupado</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-500" /> Selección</span>
+              </div>
+            </div>
+
+            {/* Manual time selection */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Hora inicio</Label>
+                <Select
+                  value={reserveForm.startTime}
+                  onValueChange={(v) => setReserveForm(prev => ({ ...prev, startTime: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Hora fin</Label>
+                <Select
+                  value={reserveForm.endTime}
+                  onValueChange={(v) => setReserveForm(prev => ({ ...prev, endTime: v }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.filter(s => s > reserveForm.startTime).map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                    <SelectItem value="22:30">22:30</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descripción <span className="text-gray-400">(opcional)</span></Label>
+              <Textarea
+                placeholder="¿Para qué vas a usar el equipo? Ej: Proyecto final, práctica de impresión 3D..."
+                value={reserveForm.description}
+                onChange={(e) => setReserveForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={2}
+              />
+            </div>
+
+            {/* Existing reservations for this day */}
+            {reservations.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm text-gray-600">Reservas existentes este día:</Label>
+                <div className="space-y-1">
+                  {reservations.map(r => (
+                    <div key={r.id} className="flex items-center justify-between px-3 py-2 bg-red-50 rounded-lg border border-red-200 text-sm">
+                      <span className="text-red-700 font-medium">{r.startTime} - {r.endTime}</span>
+                      <span className="text-red-600 text-xs">{r.userName}</span>
+                      {(r.userId === currentUserId || isAdmin) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          onClick={() => handleCancelReservation(r.id)}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReserveDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateReservation}
+              disabled={isSubmitting}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Reservando...
+                </>
+              ) : (
+                <>
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Confirmar Reserva
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ===================== MINI CALENDAR COMPONENT =====================
+
+function MiniCalendar({ selectedDate, onDateChange }: { selectedDate: Date; onDateChange: (d: Date) => void }) {
+  const [viewMonth, setViewMonth] = useState(new Date(selectedDate));
+  
+  const year = viewMonth.getFullYear();
+  const month = viewMonth.getMonth();
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDayOfWeek = firstDay.getDay(); // 0=Sun
+  const daysInMonth = lastDay.getDate();
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const prevMonth = () => setViewMonth(new Date(year, month - 1, 1));
+  const nextMonth = () => setViewMonth(new Date(year, month + 1, 1));
+
+  const days: (number | null)[] = [];
+  // Pad start
+  for (let i = 0; i < startDayOfWeek; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const dayNames = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
+
+  return (
+    <div className="border rounded-lg p-3 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold">{monthNames[month]} {year}</span>
+        <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {dayNames.map(d => (
+          <span key={d} className="text-xs text-gray-500 font-medium py-1">{d}</span>
+        ))}
+        {days.map((day, i) => {
+          if (day === null) return <span key={`e-${i}`} />;
+          const date = new Date(year, month, day);
+          const isToday = date.getTime() === today.getTime();
+          const isSelected = date.toDateString() === selectedDate.toDateString();
+          const isPast = date < today;
+          
+          return (
+            <button
+              key={day}
+              disabled={isPast}
+              onClick={() => onDateChange(date)}
+              className={`text-xs py-1.5 rounded-md transition-all ${
+                isSelected
+                  ? "bg-orange-500 text-white font-bold"
+                  : isToday
+                  ? "bg-orange-100 text-orange-700 font-semibold"
+                  : isPast
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-700 hover:bg-orange-50"
+              }`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

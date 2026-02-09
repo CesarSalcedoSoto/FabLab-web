@@ -27,6 +27,8 @@ export function HeroCarousel() {
                             src={heroImages[currentIndex]}
                             alt="Proyecto destacado"
                             fill
+                            sizes="(max-width: 1024px) 100vw, 896px"
+                            quality={80}
                             className="object-cover transition-opacity duration-700"
                             priority
                         />

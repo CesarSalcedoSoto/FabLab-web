@@ -147,6 +147,8 @@ export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) 
                                             src={media.url}
                                             alt={media.alt || media.filename}
                                             fill
+                                            sizes="(max-width: 768px) 33vw, 20vw"
+                                            quality={70}
                                             className="object-cover"
                                         />
                                     ) : (
