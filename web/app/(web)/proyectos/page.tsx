@@ -3,6 +3,8 @@ import config from "@payload-config";
 import { ProyectosPublicPage } from "@/features/projects/presentation/pages/proyectos-public";
 import type { ProjectPublic } from "@/features/projects/presentation/pages/proyectos-public";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProyectosPageRoute() {
   const payload = await getPayload({ config });
 

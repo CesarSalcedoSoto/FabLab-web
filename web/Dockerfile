@@ -1,24 +1,18 @@
 # Dockerfile - Next.js Web App (Payload embebido)
 
-FROM node:20-bookworm-slim AS base
+# Usar imagen completa (no slim) para compilar módulos nativos
+FROM node:20-bookworm AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
-# Instalar dependencias del sistema necesarias para compilar módulos nativos
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY package*.json ./
 
-# Instalar dependencias incluyendo las opcionales y reconstruir sharp para linux-x64
+# Instalar deps + forzar TODOS los binarios nativos para linux-x64
 RUN npm ci --include=optional && \
-    npm rebuild sharp --platform=linux --arch=x64 && \
-    npm rebuild lightningcss --platform=linux --arch=x64
+    npm install --os=linux --cpu=x64 sharp && \
+    npm install lightningcss-linux-x64-gnu && \
+    npm install @tailwindcss/oxide-linux-x64-gnu
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -42,7 +36,9 @@ ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 
 RUN npm run build
 
-FROM base AS runner
+# Usar slim solo para la imagen final (más liviana)
+FROM node:20-bookworm-slim AS runner
+WORKDIR /app
 RUN addgroup --system --gid 1001 nextjs && \
     adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
