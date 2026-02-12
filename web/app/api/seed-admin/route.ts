@@ -3,18 +3,33 @@
  * POST /api/seed-admin
  * 
  * Solo funciona si no hay usuarios en la base de datos
+ * 
+ * Body (opcional):
+ *   { "email": "...", "password": "...", "name": "..." }
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPayload } from 'payload';
 import configPromise from '@payload-config';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@fablab.cl';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'FabLab2024!';
-const ADMIN_NAME = process.env.ADMIN_NAME || 'Administrador';
+const DEFAULT_EMAIL = process.env.ADMIN_EMAIL || 'admin@fablab.com';
+const DEFAULT_PASSWORD = process.env.ADMIN_PASSWORD || 'Fablab2026';
+const DEFAULT_NAME = process.env.ADMIN_NAME || 'Administrador';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
     try {
+        // Leer body si existe
+        let body: { email?: string; password?: string; name?: string } = {};
+        try {
+            body = await request.json();
+        } catch {
+            // Body vacío, usar defaults
+        }
+
+        const email = body.email || DEFAULT_EMAIL;
+        const password = body.password || DEFAULT_PASSWORD;
+        const name = body.name || DEFAULT_NAME;
+
         const payload = await getPayload({ config: configPromise });
 
         // Verificar si ya existe un usuario
@@ -35,9 +50,9 @@ export async function POST() {
         const admin = await payload.create({
             collection: 'users',
             data: {
-                email: ADMIN_EMAIL,
-                password: ADMIN_PASSWORD,
-                name: ADMIN_NAME,
+                email,
+                password,
+                name,
                 role: 'admin',
             },
         });
@@ -46,8 +61,8 @@ export async function POST() {
             success: true,
             message: 'Usuario administrador creado exitosamente',
             user: {
-                email: ADMIN_EMAIL,
-                name: ADMIN_NAME,
+                email,
+                name,
             },
             note: 'Cambia la contraseña después del primer login',
         });
