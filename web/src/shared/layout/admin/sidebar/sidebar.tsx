@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils';
-import { BarChart3, Package, Users, Settings, Home, CalendarClock, LogOut } from 'lucide-react';
+import { BarChart3, Package, Users, Home, CalendarClock, LogOut } from 'lucide-react';
 import { useAuth } from '@/features/auth/presentation/providers/auth.provider';
 
 const sidebarItems = [
@@ -27,11 +27,6 @@ const sidebarItems = [
         title: 'Perfil',
         href: '/admin/profile',
         icon: Users,
-    },
-    {
-        title: 'Configuración',
-        href: '/admin/settings',
-        icon: Settings,
     },
 ];
 

@@ -14,6 +14,7 @@ export interface ProjectPublic {
     category: string;
     description: string;
     featuredImage: string | null;
+    gallery: string[];
     technologies: string[];
     creators: Array<{ name: string; role?: string; avatar?: string }>;
     year: number;

@@ -215,17 +215,16 @@ export function Navbar() {
                     <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                         <div className="flex flex-col space-y-6 mt-6">
                             <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center">
-                                    <Cpu className="w-4 h-4 text-white" />
-                                </div>
+                                <Logo size={36} />
                                 <div>
                                     <h2 className="font-bold text-lg">FabLab INACAP</h2>
-                                    <p className="text-xs text-muted-foreground">Laboratorio Tecnológico</p>
+                                    <p className="text-xs text-muted-foreground">Los Ángeles</p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col space-y-4">
-                                {navigationItems.map((item) => (
+                            <div className="flex flex-col space-y-1">
+                                {/* Navegación principal */}
+                                {[...navigationItems, ...navigationItemsRight].map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
@@ -243,7 +242,7 @@ export function Navbar() {
                                 ))}
 
                                 {/* Ver más section */}
-                                <div className="pt-2 border-t">
+                                <div className="pt-3 mt-2 border-t">
                                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-2 mb-2">
                                         Ver más
                                     </p>
@@ -263,20 +262,9 @@ export function Navbar() {
                                     })}
                                 </div>
 
-                                {navigationItemsRight.map((item) => (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                        className="flex items-center justify-between text-base font-medium hover:text-orange-500 transition-colors duration-200 p-2 rounded-lg hover:bg-orange-50"
-                                    >
-                                        <span>{item.label}</span>
-                                    </Link>
-                                ))}
-
                                 {/* Usuario autenticado: mostrar info y opciones */}
                                 {user && (
-                                    <div className="pt-4 border-t mt-4">
+                                    <div className="pt-3 border-t mt-2">
                                         <div className="flex items-center gap-3 px-2 py-2 mb-2">
                                             <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
                                                 <User className="w-4 h-4 text-white" />

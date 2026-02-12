@@ -10,16 +10,16 @@
  */
 
 // Configuración del sitio
-export { SiteSettings } from './SiteSettings';
-export { LandingConfig } from './LandingConfig';
+export { SiteSettings } from './SiteSettings.ts';
+export { LandingConfig } from './LandingConfig.ts';
 
 // Páginas
-export { EquipoPage } from './EquipoPage';
+export { EquipoPage } from './EquipoPage.ts';
 
 // Array para usar en payload.config.ts
-import { SiteSettings } from './SiteSettings';
-import { LandingConfig } from './LandingConfig';
-import { EquipoPage } from './EquipoPage';
+import { SiteSettings } from './SiteSettings.ts';
+import { LandingConfig } from './LandingConfig.ts';
+import { EquipoPage } from './EquipoPage.ts';
 
 export const globals = [
     SiteSettings,

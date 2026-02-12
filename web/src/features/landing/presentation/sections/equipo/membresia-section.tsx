@@ -16,14 +16,18 @@ export function MembresiaSection() {
               Únete a Nosotros
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Sé parte de la{" "}
+              Sé parte de{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
-                comunidad maker
+                FabLab INACAP
               </span>
             </h2>
+            <p className="text-gray-600 text-lg mb-4">
+              FabLab es un espacio de innovación sin fines de lucro que te da acceso a 
+              equipos de última generación, capacitaciones, mentoría de expertos y una 
+              comunidad dedicada a la fabricación digital.
+            </p>
             <p className="text-gray-600 text-lg mb-8">
-              La membresía de FabLab te da acceso a equipos de última generación,
-              capacitaciones, mentoría de expertos y una comunidad vibrante de innovadores.
+              Puedes unirte y colaborar en proyectos que transforman ideas en realidad.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4 mb-8">
@@ -44,7 +48,7 @@ export function MembresiaSection() {
             <div className="flex flex-wrap gap-4">
               <Link href="/contacto">
                 <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-6 text-lg rounded-full">
-                  Solicitar Membresía
+                  Únete Ahora
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
@@ -87,8 +91,8 @@ export function MembresiaSection() {
                 </div>
                 <div className="relative h-48 rounded-2xl overflow-hidden">
                   <Image
-                    src="https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=600&h=400&fit=crop"
-                    alt="Laser cutting"
+                    src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600&h=400&fit=crop"
+                    alt="Fabricación digital"
                     fill
                     className="object-cover"
                   />
@@ -98,16 +102,12 @@ export function MembresiaSection() {
 
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl p-6 flex gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-orange-600">500+</p>
-                <p className="text-sm text-gray-500">Miembros</p>
+                <p className="text-3xl font-bold text-orange-600">300+</p>
+                <p className="text-sm text-gray-500">Colaboradores</p>
               </div>
               <div className="text-center border-l border-gray-200 pl-8">
-                <p className="text-3xl font-bold text-orange-600">50+</p>
-                <p className="text-sm text-gray-500">Cursos</p>
-              </div>
-              <div className="text-center border-l border-gray-200 pl-8">
-                <p className="text-3xl font-bold text-orange-600">24/7</p>
-                <p className="text-sm text-gray-500">Acceso</p>
+                <p className="text-3xl font-bold text-orange-600">30+</p>
+                <p className="text-sm text-gray-500">Proyectos</p>
               </div>
             </div>
           </div>

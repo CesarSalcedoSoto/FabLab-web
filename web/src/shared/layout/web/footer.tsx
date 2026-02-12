@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/shared/ui/buttons/button";
 import { Separator } from "@/shared/ui/sections/separator";
@@ -154,8 +156,15 @@ export function Footer() {
 
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="text-sm text-gray-500">
-            © 2025 FabLab INACAP Los Ángeles. Todos los derechos reservados.
+          <div className="flex flex-col items-center md:items-start space-y-2">
+            <div className="text-sm text-gray-500">
+              © 2025 FabLab INACAP Los Ángeles. Todos los derechos reservados.
+            </div>
+            <div className="text-xs text-gray-600 flex items-center gap-2">
+              <span>Desarrollado por César Salcedo Soto</span>
+              <span className="text-gray-700">•</span>
+              <span>Versión 1.3</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-6">

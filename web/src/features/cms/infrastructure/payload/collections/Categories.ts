@@ -6,7 +6,7 @@
  */
 
 import type { CollectionConfig } from 'payload';
-import { publicRead, isEditor, isAdmin } from '../access';
+import { publicRead, isEditor, isAdmin } from '../access/index.ts';
 
 export const Categories: CollectionConfig = {
     slug: 'categories',

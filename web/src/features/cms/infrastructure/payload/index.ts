@@ -16,12 +16,12 @@
  */
 
 // Colecciones
-export { collections } from './collections';
-export { Users, Media, Posts, Categories, TeamMembers, Projects, EquipmentRequests, EquipmentUsage } from './collections';
+export { collections } from './collections/index.ts';
+export { Users, Media, Posts, Categories, TeamMembers, Projects, EquipmentRequests, EquipmentUsage } from './collections/index.ts';
 
 // Globals
-export { globals } from './globals';
-export { EquipoPage } from './globals';
+export { globals } from './globals/index.ts';
+export { EquipoPage } from './globals/index.ts';
 
 // Access helpers
 export {
@@ -34,4 +34,4 @@ export {
     editorFieldAccess,
     type UserRole,
     type PayloadUser,
-} from './access';
+} from './access/index.ts';

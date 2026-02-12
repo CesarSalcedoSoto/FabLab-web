@@ -496,6 +496,8 @@ export default function ProjectsAdminPage() {
             if (result.success) {
                 toast.success(`${project.title} ${newStatus === 'published' ? 'publicado' : 'como borrador'}`);
                 loadData();
+            } else {
+                toast.error(result.error || "Error al cambiar estado");
             }
         } catch (error) {
             toast.error("Error al cambiar estado");

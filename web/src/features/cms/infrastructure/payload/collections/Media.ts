@@ -11,7 +11,7 @@
  */
 
 import type { CollectionConfig } from 'payload';
-import { publicRead, isAuthenticated } from '../access';
+import { publicRead, isAuthenticated } from '../access/index.ts';
 
 export const Media: CollectionConfig = {
     slug: 'media',

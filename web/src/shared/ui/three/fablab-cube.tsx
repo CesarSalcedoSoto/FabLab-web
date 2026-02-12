@@ -2,8 +2,8 @@
 
 import { RotatingGroup } from "./rotating-group";
 import { LogoCube } from "./logo-cube";
-import { useIsMobile } from "@/shared/hooks";
 import { LOGOS } from "@/shared/constants/assets";
+import { useState, useEffect } from "react";
 
 interface FabLabCubeProps {
   desktopSize?: number;
@@ -18,10 +18,15 @@ export function FabLabCube({
   desktopSize = 2.5,
   mobileSize = 1.2
 }: FabLabCubeProps) {
-  const isMobile = useIsMobile();
-  const cubeSize = isMobile ? mobileSize : desktopSize;
-  // Centrar con el texto FABLAB (mismo Y que titleY en AdaptiveText)
-  const centerY = isMobile ? 0.15 : 0.3;
+  // Usar un valor estable para evitar re-renders durante hidratación
+  const [cubeSize, setCubeSize] = useState(desktopSize);
+  const [centerY, setCenterY] = useState(0.3);
+
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    setCubeSize(isMobile ? mobileSize : desktopSize);
+    setCenterY(isMobile ? 0.15 : 0.3);
+  }, [mobileSize, desktopSize]);
 
   return (
     <group position={[0, centerY, 0]}>

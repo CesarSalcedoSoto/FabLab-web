@@ -10,7 +10,7 @@
  */
 
 import type { CollectionConfig } from 'payload';
-import { isAdmin, isAdminOrSelf } from '../access';
+import { isAdmin, isAdminOrSelf } from '../access/index.ts';
 
 export const Users: CollectionConfig = {
     slug: 'users',

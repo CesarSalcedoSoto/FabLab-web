@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/features/auth";
 import { AdminSidebar } from "@/shared/layout/admin/sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/shared/ui/misc/sheet";
@@ -117,14 +119,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Header Móvil - Visible solo en mobile */}
             <div className="md:hidden border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <img 
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <Image 
                         src="/images/logos/fablab-logo.png" 
                         alt="FabLab" 
+                        width={32}
+                        height={32}
                         className="h-8 w-8"
                     />
                     <span className="font-semibold text-gray-900">FabLab</span>
-                </div>
+                </Link>
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                     <SheetTrigger asChild>
                         <button 
@@ -134,8 +138,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <Menu className="h-6 w-6" />
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-64 p-0">
-                        <AdminSidebar />
+                    <SheetContent side="left" className="w-64 p-0" hideCloseButton>
+                        <AdminSidebar onClose={() => setMobileMenuOpen(false)} />
                     </SheetContent>
                 </Sheet>
             </div>

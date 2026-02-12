@@ -27,6 +27,7 @@ export default async function ProyectosPageRoute() {
     category: doc.category,
     description: doc.description,
     featuredImage: typeof doc.featuredImage === 'object' ? doc.featuredImage?.url : null,
+    gallery: doc.gallery?.map((g: any) => typeof g.image === 'object' ? g.image?.url : null).filter(Boolean) || [],
     technologies: doc.technologies?.map((t: any) => t.name) || [],
     creators: doc.creators?.map((c: any) => {
       // Si hay un teamMember (usuario), usamos sus datos

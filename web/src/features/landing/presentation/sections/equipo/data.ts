@@ -32,6 +32,7 @@ export const equipoCentral: TeamMember[] = [
       "Participante en proyectos de innovación",
       "Desarrollo de soluciones tecnológicas",
     ],
+    proyectos: 5,
     social: {
       email: "cesar.salcedo02@inacapmail.cl",
     },
@@ -51,6 +52,7 @@ export const equipoCentral: TeamMember[] = [
       "Proyectos de infraestructura tecnológica",
       "Miembro del equipo FabLab",
     ],
+    proyectos: 4,
     social: {
       email: "christian.orellana@inacapmail.cl",
     },
@@ -70,6 +72,7 @@ export const equipoCentral: TeamMember[] = [
       "Participante en hackathons",
       "Colaborador en proyectos estudiantiles",
     ],
+    proyectos: 3,
     social: {
       email: "juan.erices04@inacapmail.cl",
     },
@@ -89,6 +92,7 @@ export const equipoCentral: TeamMember[] = [
       "Proyectos de identidad visual",
       "Creación de contenido digital",
     ],
+    proyectos: 6,
     social: {
       email: "maria.valenzuela61@inacapmail.cl",
     },
@@ -108,6 +112,7 @@ export const equipoCentral: TeamMember[] = [
       "Desarrollo de sistemas robóticos",
       "Innovación en tecnología industrial",
     ],
+    proyectos: 4,
     social: {
       email: "matias.labra06@inacapmail.cl",
     },
@@ -127,6 +132,7 @@ export const equipoCentral: TeamMember[] = [
       "Programación de soluciones",
       "Optimización de procesos",
     ],
+    proyectos: 5,
     social: {
       email: "kristobal.sanchez@inacapmail.cl",
     },
@@ -146,6 +152,7 @@ export const equipoCentral: TeamMember[] = [
       "Proyectos robóticos educativos",
       "Innovación tecnológica",
     ],
+    proyectos: 3,
     social: {
       email: "Herno.vargas@inacapmail.cl",
     },
@@ -165,6 +172,7 @@ export const equipoCentral: TeamMember[] = [
       "Programación web",
       "Soluciones tecnológicas",
     ],
+    proyectos: 4,
     social: {
       email: "jordy.zenteno@inacapmail.cl",
     },
@@ -184,6 +192,7 @@ export const equipoCentral: TeamMember[] = [
       "Desarrollo de videojuegos",
       "Diseño de personajes",
     ],
+    proyectos: 5,
     social: {
       email: "dilan.toledo@inacapmail.cl",
     },
@@ -203,6 +212,7 @@ export const equipoCentral: TeamMember[] = [
       "Robótica industrial",
       "Proyectos de automatización",
     ],
+    proyectos: 3,
     social: {
       email: "hector.sanhueza13@inacapmail.cl",
     },
@@ -222,6 +232,7 @@ export const equipoCentral: TeamMember[] = [
       "Sistemas robóticos",
       "Automatización inteligente",
     ],
+    proyectos: 4,
     social: {
       email: "benjamin.coronado02@inacapmail.cl",
     },
@@ -241,6 +252,7 @@ export const equipoCentral: TeamMember[] = [
       "Desarrollo robótico",
       "Innovación en procesos",
     ],
+    proyectos: 2,
     social: {
       email: "alan.henriquez02@inacapmail.cl",
     },
@@ -412,11 +424,6 @@ export const beneficiosMembresia: BeneficioMembresia[] = [
     titulo: "Comunidad Activa",
     descripcion: "Networking con otros makers, emprendedores y profesionales.",
     icono: "🤝",
-  },
-  {
-    titulo: "Descuentos en Materiales",
-    descripcion: "Precios especiales en filamentos, acrílicos, componentes y más.",
-    icono: "💰",
   },
   {
     titulo: "Eventos Exclusivos",

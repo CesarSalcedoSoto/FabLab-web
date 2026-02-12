@@ -10,7 +10,7 @@
  */
 
 import type { CollectionConfig } from 'payload';
-import { publicRead, isEditor } from '../access';
+import { publicRead, isEditor } from '../access/index.ts';
 
 export const TeamMembers: CollectionConfig = {
     slug: 'team-members',

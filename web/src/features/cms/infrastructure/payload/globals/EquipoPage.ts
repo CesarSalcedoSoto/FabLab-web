@@ -6,7 +6,7 @@
  */
 
 import type { GlobalConfig } from 'payload';
-import { publicRead, isEditor } from '../access';
+import { publicRead, isEditor } from '../access/index.ts';
 
 export const EquipoPage: GlobalConfig = {
     slug: 'equipo-page',

@@ -5,7 +5,7 @@
  */
 
 import type { GlobalConfig } from 'payload';
-import { isEditor } from '../access';
+import { isEditor } from '../access/index.ts';
 
 export const LandingConfig: GlobalConfig = {
     slug: 'landing-config',

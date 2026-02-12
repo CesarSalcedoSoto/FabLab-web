@@ -12,7 +12,7 @@
  */
 
 import type { CollectionConfig } from 'payload';
-import { publicRead, isEditor } from '../access';
+import { publicRead, isEditor } from '../access/index.ts';
 
 export const Services: CollectionConfig = {
     slug: 'services',

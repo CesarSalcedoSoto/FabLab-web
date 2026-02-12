@@ -9,7 +9,6 @@ import type { FeatureModule, UserModuleAccess } from '@/features/auth/domain/val
 import {
   Package,
   Users,
-  Settings,
   Home,
   ChevronDown,
   ChevronRight,
@@ -38,6 +37,7 @@ import {
   User,
   LogOut,
   ClipboardList,
+  BookOpen,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -87,6 +87,30 @@ const adminSidebarItems: SidebarItem[] = [
     adminOnly: true,
   },
   {
+    title: 'Blog',
+    href: '/admin/blog',
+    icon: FileText,
+    adminOnly: true,
+  },
+  {
+    title: 'Eventos',
+    href: '/admin/eventos',
+    icon: Calendar,
+    adminOnly: true,
+  },
+  {
+    title: 'Recursos',
+    href: '/admin/recursos',
+    icon: BookOpen,
+    adminOnly: true,
+  },
+  {
+    title: 'Galería',
+    href: '/admin/galeria',
+    icon: ImageIcon,
+    adminOnly: true,
+  },
+  {
     title: 'Proyectos',
     href: '/admin/content/projects',
     icon: FolderTree,
@@ -96,12 +120,6 @@ const adminSidebarItems: SidebarItem[] = [
     title: 'Especialistas',
     href: '/admin/content/team',
     icon: Users,
-    adminOnly: true,
-  },
-  {
-    title: 'Configuración',
-    href: '/admin/settings',
-    icon: Settings,
     adminOnly: true,
   },
 ];
@@ -172,9 +190,12 @@ function SidebarItemComponent({ item, collapsed = false }: { item: SidebarItem; 
   );
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { effectiveModuleAccess, isSimulating, stopSimulation, user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  // En modo móvil (cuando hay onClose), no colapsamos, cerramos el panel
+  const isMobileMode = !!onClose;
 
   // Verificar si el usuario es admin
   // Verificamos tanto el role.code del sistema de auth como el payloadRole directo
@@ -214,10 +235,13 @@ export function AdminSidebar() {
     )}>
       {/* Logo y botón de colapsar */}
       <div className="p-3 border-b border-gray-200 flex items-center justify-between min-h-[64px]">
-        <div className={cn(
-          "flex items-center gap-3 overflow-hidden transition-all duration-300",
-          collapsed ? "w-10" : "w-full"
-        )}>
+        <Link 
+          href="/"
+          className={cn(
+            "flex items-center gap-3 overflow-hidden transition-all duration-300 hover:opacity-80",
+            collapsed ? "w-10" : "w-full"
+          )}
+        >
           <div className="w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden">
             <Image
               src="/images/logos/fablab-logo.png"
@@ -227,17 +251,18 @@ export function AdminSidebar() {
               className="w-full h-full object-contain"
             />
           </div>
-
-        </div>
+        </Link>
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => isMobileMode ? onClose?.() : setCollapsed(!collapsed)}
           className={cn(
-            "p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0",
-            collapsed && "ml-0"
+            "p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0 ml-2",
+            collapsed && "ml-1"
           )}
-          title={collapsed ? "Expandir menú" : "Contraer menú"}
+          title={isMobileMode ? "Cerrar menú" : (collapsed ? "Expandir menú" : "Contraer menú")}
         >
-          {collapsed ? (
+          {isMobileMode ? (
+            <PanelLeftClose className="h-5 w-5" />
+          ) : collapsed ? (
             <PanelLeft className="h-5 w-5" />
           ) : (
             <PanelLeftClose className="h-5 w-5" />

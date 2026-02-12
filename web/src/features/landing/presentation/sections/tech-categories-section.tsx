@@ -6,147 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/shared/ui/buttons/button";
-
-interface TechBox {
-  id: string;
-  titulo: string;
-  imagenes: string[];
-  descripcion?: string;
-}
-
-interface TechCategory {
-  id: string;
-  label: string;
-  color: string;
-  tecnologias: TechBox[];
-}
-
-// Datos con múltiples imágenes
-const techCategories: TechCategory[] = [
-  {
-    id: "hardware",
-    label: "Hardware & Fabricación",
-    color: "from-blue-500 to-cyan-500",
-    tecnologias: [
-      {
-        id: "h1",
-        titulo: "Impresoras 3D FDM",
-        imagenes: [
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Prusa, Ender, Ultimaker",
-      },
-      {
-        id: "h2",
-        titulo: "Impresoras 3D Resina",
-        imagenes: [
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Elegoo, Anycubic, Formlabs",
-      },
-      {
-        id: "h3",
-        titulo: "Cortadora Láser",
-        imagenes: [
-          "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1565689157206-0fddef7589a2?w=400&h=300&fit=crop",
-        ],
-        descripcion: "CO2 y Fibra óptica",
-      },
-      {
-        id: "h4",
-        titulo: "CNC Router",
-        imagenes: [
-          "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Fresado de precisión",
-      },
-      {
-        id: "h5",
-        titulo: "Escáner 3D",
-        imagenes: [
-          "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Digitalización de objetos",
-      },
-      {
-        id: "h6",
-        titulo: "Soldadura",
-        imagenes: [
-          "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Estaciones de soldadura SMD",
-      },
-    ],
-  },
-  {
-    id: "software",
-    label: "Software & Desarrollo",
-    color: "from-purple-500 to-pink-500",
-    tecnologias: [
-      {
-        id: "s1",
-        titulo: "CAD/CAM",
-        imagenes: [
-          "https://images.unsplash.com/photo-1545670723-196ed0954986?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1581094794329-c8112d89b8a3?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Fusion 360, SolidWorks, FreeCAD",
-      },
-      {
-        id: "s2",
-        titulo: "Slicers",
-        imagenes: [
-          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop",
-        ],
-        descripcion: "PrusaSlicer, Cura, Bambu Studio",
-      },
-      {
-        id: "s3",
-        titulo: "Arduino IDE",
-        imagenes: [
-          "https://images.unsplash.com/photo-1553406830-ef2513450d76?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1608564697071-ddf911d81370?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Programación de microcontroladores",
-      },
-      {
-        id: "s4",
-        titulo: "VS Code",
-        imagenes: [
-          "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Desarrollo web y aplicaciones",
-      },
-      {
-        id: "s5",
-        titulo: "Blender",
-        imagenes: [
-          "https://images.unsplash.com/photo-1617802690992-15d93263d3a9?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Modelado y animación 3D",
-      },
-      {
-        id: "s6",
-        titulo: "KiCad",
-        imagenes: [
-          "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
-          "https://images.unsplash.com/photo-1553406830-ef2513450d76?w=400&h=300&fit=crop",
-        ],
-        descripcion: "Diseño de PCBs",
-      },
-    ],
-  },
-];
+import type { TechCategory, TechBox } from "./tech-categories-actions";
 
 interface TechCardProps {
   tech: TechBox;
@@ -321,12 +181,28 @@ function CategoryCarousel({ category, categoryIndex }: CategoryCarouselProps) {
 
 export function TechCategoriesSection() {
   const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<TechCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    
+    const loadCategories = async () => {
+      try {
+        const { getTechCategories } = await import('./tech-categories-actions');
+        const data = await getTechCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error('Error loading tech categories:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategories();
   }, []);
 
-  if (!mounted) {
+  if (!mounted || isLoading) {
     return (
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
@@ -346,6 +222,11 @@ export function TechCategoriesSection() {
         </div>
       </section>
     );
+  }
+
+  // Si no hay categorías, no mostrar la sección
+  if (categories.length === 0) {
+    return null;
   }
 
   return (
@@ -370,7 +251,7 @@ export function TechCategoriesSection() {
         </motion.div>
 
         {/* Categorías con carruseles */}
-        {techCategories.map((category, index) => (
+        {categories.map((category, index) => (
           <CategoryCarousel key={category.id} category={category} categoryIndex={index} />
         ))}
       </div>

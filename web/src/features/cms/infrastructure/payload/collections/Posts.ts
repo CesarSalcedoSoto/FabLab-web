@@ -12,7 +12,7 @@
  */
 
 import type { CollectionConfig, Access, Where } from 'payload';
-import { isAuthenticated } from '../access';
+import { isAuthenticated } from '../access/index.ts';
 
 export const Posts: CollectionConfig = {
     slug: 'posts',

@@ -323,12 +323,15 @@ export async function toggleProjectFeatured(id: string): Promise<{ success: bool
 
 export async function updateProjectStatus(id: string, status: 'draft' | 'published'): Promise<{ success: boolean; error?: string }> {
     try {
+        console.log('[updateProjectStatus] Updating project', id, 'to status', status);
         const payload = await getPayload({ config });
         await payload.update({ collection: 'projects', id, data: { status }, overrideAccess: true });
+        console.log('[updateProjectStatus] Update successful');
         revalidatePath('/admin/content/projects');
         revalidatePath('/proyectos');
         return { success: true };
     } catch (error: any) {
+        console.error('[updateProjectStatus] Error:', error);
         return { success: false, error: error.message };
     }
 }

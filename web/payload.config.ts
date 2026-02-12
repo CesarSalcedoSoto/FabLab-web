@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 
 // Importar colecciones y globals desde feature CMS centralizada
-import { collections, globals, Users } from './src/features/cms';
+import { collections, globals, Users } from './src/features/cms/infrastructure/payload/index.ts';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -31,6 +31,9 @@ export default buildConfig({
             description: 'Sistema de gestión de contenidos del FabLab INACAP Los Ángeles',
         },
     },
+
+    // Desactivar bloqueo de documentos (la tabla está desincronizada)
+    lockDocuments: false,
 
     // Colecciones y globals centralizadas
     collections,
@@ -49,6 +52,8 @@ export default buildConfig({
         pool: {
             connectionString: DATABASE_URL,
         },
+        // Disable interactive schema push to prevent server hangs in development
+        push: false,
     }),
 
     // Editor Lexical

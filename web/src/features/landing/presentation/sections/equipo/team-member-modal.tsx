@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
-import { Linkedin, Github, Mail, Twitter, Award, Calendar, X } from "lucide-react";
+import { Linkedin, Github, Mail, Twitter, Award, Calendar, X, Briefcase } from "lucide-react";
 import type { TeamMember } from "./types";
 
 interface TeamMemberModalProps {
@@ -43,13 +43,21 @@ export function TeamMemberModal({ member, isOpen, onClose }: TeamMemberModalProp
           <div className="grid md:grid-cols-2 min-h-full">
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 md:p-12 flex flex-col justify-center items-center text-white">
               <div className="w-48 h-48 rounded-3xl overflow-hidden ring-4 ring-white/30 mb-6 relative">
-                <Image
-                  src={member.imagen}
-                  alt={member.nombre}
-                  fill
-                  className="object-cover"
-                  style={{ objectPosition: member.imagePosition || '50% 50%' }}
-                />
+                {member.imagen ? (
+                  <Image
+                    src={member.imagen}
+                    alt={member.nombre}
+                    fill
+                    className="object-cover"
+                    style={{ objectPosition: member.imagePosition || '50% 50%' }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/20 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-white/60">
+                      {member.nombre.charAt(0)}
+                    </span>
+                  </div>
+                )}
               </div>
               <h2 className="text-3xl font-bold mb-2">{member.nombre}</h2>
               <p className="text-orange-100 font-medium mb-1">{member.cargo}</p>
@@ -96,6 +104,20 @@ export function TeamMemberModal({ member, isOpen, onClose }: TeamMemberModalProp
                   ))}
                 </ul>
               </div>
+
+              {member.proyectos !== undefined && (
+                <div className="mb-8 p-4 bg-orange-50 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Proyectos Completados</p>
+                      <p className="text-2xl font-bold text-orange-600">{member.proyectos}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
                 <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">

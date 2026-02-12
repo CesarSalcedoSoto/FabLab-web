@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Search, Cpu, Code, Palette, Radio, ExternalLink, X, ChevronRight, motion } from "lucide-react";
+import { Search, Cpu, Code, Palette, Radio, ExternalLink, X, ChevronRight, ChevronLeft, ImageIcon } from "lucide-react";
 import { motion as framerMotion } from "framer-motion";
 import { Input } from "@/shared/ui/inputs/input";
 import { Button } from "@/shared/ui/buttons/button";
@@ -18,6 +18,7 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<ProjectPublic | null>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Filter projects
     const filteredProjects = projects.filter((project) => {
@@ -30,10 +31,10 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
 
     const categories = [
         { value: null, label: 'Todos', icon: null },
-        { value: 'hardware', label: 'Hardware', icon: Cpu },
-        { value: 'software', label: 'Software', icon: Code },
-        { value: 'design', label: 'Diseño', icon: Palette },
-        { value: 'iot', label: 'IoT', icon: Radio },
+        { value: 'Hardware', label: 'Hardware', icon: Cpu },
+        { value: 'Software', label: 'Software', icon: Code },
+        { value: 'Diseño', label: 'Diseño', icon: Palette },
+        { value: 'IoT', label: 'IoT', icon: Radio },
     ];
 
     return (
@@ -261,39 +262,64 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                 </div>
             </section>
 
-            {/* Project Modal */}
+            {/* Project Modal - Optimized */}
             {selectedProject && (
-                <framerMotion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-                    onClick={() => setSelectedProject(null)}
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
+                    onClick={() => { setSelectedProject(null); setCurrentImageIndex(0); }}
                 >
-                    <framerMotion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+                    <div
+                        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal Header Image */}
-                        <div className="relative aspect-video">
-                            {selectedProject.featuredImage ? (
-                                <Image
-                                    src={selectedProject.featuredImage}
-                                    alt={selectedProject.title}
-                                    fill
-                                    className="object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                                    <Cpu className="w-20 h-20 text-orange-400" />
-                                </div>
-                            )}
+                        {/* Modal Header Image with Gallery */}
+                        <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200">
+                            {(() => {
+                                const allImages = [selectedProject.featuredImage, ...selectedProject.gallery].filter(Boolean) as string[];
+                                const currentImage = allImages[currentImageIndex] || null;
+                                
+                                return (
+                                    <>
+                                        {currentImage ? (
+                                            <Image
+                                                src={currentImage}
+                                                alt={selectedProject.title}
+                                                fill
+                                                className="object-cover"
+                                                priority
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Cpu className="w-20 h-20 text-orange-400" />
+                                            </div>
+                                        )}
+                                        
+                                        {/* Gallery Navigation */}
+                                        {allImages.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => i > 0 ? i - 1 : allImages.length - 1); }}
+                                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                                                >
+                                                    <ChevronLeft className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => i < allImages.length - 1 ? i + 1 : 0); }}
+                                                    className="absolute right-14 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                                                >
+                                                    <ChevronRight className="w-5 h-5" />
+                                                </button>
+                                                <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/50 rounded-full text-white text-sm flex items-center gap-1.5">
+                                                    <ImageIcon className="w-4 h-4" />
+                                                    {currentImageIndex + 1} / {allImages.length}
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
+                                );
+                            })()}
                             <button
-                                onClick={() => setSelectedProject(null)}
+                                onClick={() => { setSelectedProject(null); setCurrentImageIndex(0); }}
                                 className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors z-10"
                             >
                                 <X className="w-5 h-5" />
@@ -304,6 +330,27 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                 </span>
                             </div>
                         </div>
+
+                        {/* Gallery Thumbnails */}
+                        {(() => {
+                            const allImages = [selectedProject.featuredImage, ...selectedProject.gallery].filter(Boolean) as string[];
+                            if (allImages.length <= 1) return null;
+                            return (
+                                <div className="px-8 pt-4 pb-2 overflow-x-auto">
+                                    <div className="flex gap-2">
+                                        {allImages.map((img, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setCurrentImageIndex(idx)}
+                                                className={`relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-orange-500 ring-2 ring-orange-200' : 'border-transparent hover:border-gray-300'}`}
+                                            >
+                                                <Image src={img} alt="" fill className="object-cover" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Modal Content */}
                         <div className="p-8">
@@ -400,8 +447,8 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                 </div>
                             )}
                         </div>
-                    </framerMotion.div>
-                </framerMotion.div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -14,6 +14,7 @@ export interface TeamMember {
   bio: string;
   experiencia: string;
   logros: string[];
+  proyectos?: number;
   social: {
     linkedin?: string;
     github?: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { motion } from 'framer-motion';
@@ -13,14 +13,14 @@ import { FabLabCube, AdaptiveText } from '@/shared/ui/three';
 
 function Scene({ model }: { model: "donut" | "cube" | "inacap" }) {
     return (
-        <>
+        <Suspense fallback={null}>
             {
                 model === "donut" ? <DonutModel /> :
                     model === "inacap" ? <InacapLogo3D /> :
                         <FabLabCube />
             }
             <AdaptiveText />
-        </>
+        </Suspense>
     );
 }
 
@@ -59,7 +59,12 @@ export function Hero3DSection() {
         <section className="relative w-full h-[85vh] bg-white flex items-center justify-center isolate overflow-hidden">
             {/* 3D Canvas - fondo */}
             <div className="absolute inset-0 z-0">
-                <Canvas className="w-full h-full">
+                <Canvas 
+                    className="w-full h-full"
+                    onError={(error) => console.error('Canvas error:', error)}
+                    gl={{ antialias: true, alpha: false }}
+                    dpr={[1, 2]}
+                >
                     <color attach="background" args={['#ffffff']} />
                     <PerspectiveCamera makeDefault position={[0, 0, 8]} />
                     <ambientLight intensity={0.6} />

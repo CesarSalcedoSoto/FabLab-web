@@ -21,142 +21,36 @@ interface TeamMember {
   };
 }
 
-// Fallback estático. Se reemplaza al cargar desde Strapi.
-const teamMembers: TeamMember[] = [
-  {
-    name: "Christian David Orellana Benner",
-    role: "Ingeniería en Informática",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante de Ingeniería en Informática apasionado por el desarrollo de software y las tecnologías emergentes.",
-    social: {
-      email: "cesar.salcedo02@inacapmail.cl",
-    },
-  },
-  {
-    name: "Christian David Orellana Benner",
-    role: "Ingeniería en Telecomunicaciones Conectividad y Redes",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante especializado en telecomunicaciones, conectividad y arquitectura de redes.",
-    social: {
-      email: "christian.orellana@inacapmail.cl",
-    },
-  },
-  {
-    name: "Juan Pablo Erices Fuentealba",
-    role: "Ingeniería en Informática",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante de Ingeniería en Informática con interés en desarrollo de aplicaciones y sistemas.",
-    social: {
-      email: "juan.erices04@inacapmail.cl",
-    },
-  },
-  {
-    name: "María José Valenzuela Ulloa",
-    role: "Diseño Digital y Web",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante de Diseño Digital y Web, creando experiencias visuales atractivas y funcionales.",
-    social: {
-      email: "maria.valenzuela61@inacapmail.cl",
-    },
-  },
-  {
-    name: "Matías Benjamín Labra Martínez",
-    role: "Ingeniería en Automatización y Robótica",
-    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante especializado en sistemas automatizados y robótica industrial.",
-    social: {
-      email: "matias.labra06@inacapmail.cl",
-    },
-  },
-  {
-    name: "Kristóbal Andrés Jesús Sánchez Lizama",
-    role: "Analista Programador",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante de Analista Programador enfocado en el desarrollo y análisis de sistemas.",
-    social: {
-      email: "kristobal.sanchez@inacapmail.cl",
-    },
-  },
-  {
-    name: "Herno Cristóbal Vargas Ríos",
-    role: "Ingeniería en Automatización y Robótica",
-    image: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante con pasión por la automatización de procesos y sistemas robóticos.",
-    social: {
-      email: "Herno.vargas@inacapmail.cl",
-    },
-  },
-  {
-    name: "Jordy Brahian Zenteno Salazar",
-    role: "Ingeniería en Informática",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante de Ingeniería en Informática con interés en desarrollo de software.",
-    social: {
-      email: "jordy.zenteno@inacapmail.cl",
-    },
-  },
-  {
-    name: "Dilan Sebastián Toledo Luengo",
-    role: "Animación Digital y Videojuegos",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante creativo especializado en animación digital y desarrollo de videojuegos.",
-    social: {
-      email: "dilan.toledo@inacapmail.cl",
-    },
-  },
-  {
-    name: "Héctor Egidio Patricio Sanhueza Valdivia",
-    role: "Ingeniería en Automatización y Robótica",
-    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante dedicado a la automatización industrial y tecnologías robóticas.",
-    social: {
-      email: "hector.sanhueza13@inacapmail.cl",
-    },
-  },
-  {
-    name: "Benjamín Eduardo Coronado Sanzana",
-    role: "Ingeniería en Automatización y Robótica",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante enfocado en sistemas automatizados y control de procesos robóticos.",
-    social: {
-      email: "benjamin.coronado02@inacapmail.cl",
-    },
-  },
-  {
-    name: "Allan Rodrigo Henriquez Ponce",
-    role: "Ingeniería en Automatización y Robótica",
-    image: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&fit=crop&crop=face",
-    bio: "Estudiante con interés en automatización de procesos y desarrollo de sistemas robóticos.",
-    social: {
-      email: "alan.henriquez02@inacapmail.cl",
-    },
-  },
-];
-
 export function TeamSection() {
   const [members, setMembers] = useState<TeamMemberUI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchTeamMembers().then((data) => {
-      if (data.length) {
+    fetchTeamMembers()
+      .then((data) => {
         setMembers(data);
-      }
-    });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
-  const dataToRender = members.length
-    ? members.map((m) => ({
-      name: m.name,
-      role: m.role || "",
-      image: m.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      bio: m.bio || "",
-      social: {
-        linkedin: m.linkedin,
-        github: m.github,
-        email: m.email,
-      },
-    }))
-    : teamMembers;
+  const dataToRender: TeamMember[] = members.map((m) => ({
+    name: m.name,
+    role: m.role || "",
+    image: m.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    bio: m.bio || "",
+    social: {
+      linkedin: m.linkedin,
+      github: m.github,
+      email: m.email,
+    },
+  }));
+
+  // No mostrar la sección si no hay miembros
+  if (!isLoading && dataToRender.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-24 bg-white relative overflow-hidden">
