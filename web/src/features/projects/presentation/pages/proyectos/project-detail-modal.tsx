@@ -15,6 +15,7 @@ import {
     Play,
     FileCode
 } from "lucide-react";
+import { useImagePreloader } from "@/shared/hooks";
 import { getCategoryStyles } from "./utils";
 import type { Proyecto } from "./types";
 
@@ -26,6 +27,9 @@ interface ProjectDetailModalProps {
 
 export function ProjectDetailModal({ proyecto, isOpen, onClose }: ProjectDetailModalProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    
+    // Precargar imágenes adyacentes automáticamente
+    useImagePreloader(proyecto.imagenes, currentImageIndex, 3, isOpen);
 
     useEffect(() => {
         if (isOpen) {

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/shared/ui/buttons/button";
+import { usePreloadImages } from "@/shared/hooks";
 import type { TechCategory, TechBox } from "./tech-categories-actions";
 
 interface TechCardProps {
@@ -17,6 +18,9 @@ interface TechCardProps {
 const TechCard = memo(function TechCard({ tech, index }: TechCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  
+  // Precargar todas las imágenes cuando se hace hover
+  usePreloadImages(tech.imagenes, isHovering);
 
   // Cambiar imagen solo cuando está en hover
   useEffect(() => {
@@ -98,6 +102,15 @@ interface CategoryCarouselProps {
 function CategoryCarousel({ category, categoryIndex }: CategoryCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCount, setVisibleCount] = useState(4);
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Recopilar todas las imágenes del carrusel para precargar cuando se hace hover
+  const allCarouselImages = useMemo(() => {
+    return category.tecnologias.flatMap(tech => tech.imagenes);
+  }, [category.tecnologias]);
+
+  // Precargar todas las imágenes cuando el usuario hace hover sobre la categoría
+  usePreloadImages(allCarouselImages, isHovering);
 
   useEffect(() => {
     const updateVisibleCount = () => {
@@ -131,6 +144,7 @@ function CategoryCarousel({ category, categoryIndex }: CategoryCarouselProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: categoryIndex * 0.2 }}
       className="mb-12"
+      onMouseEnter={() => setIsHovering(true)}
     >
       {/* Label de categoría */}
       <div className={`flex items-center gap-4 mb-6 ${categoryIndex % 2 === 1 ? 'flex-row-reverse' : ''}`}>

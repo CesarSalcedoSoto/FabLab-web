@@ -2,6 +2,11 @@
 
 import { getPayload } from "payload";
 import config from "@payload-config";
+import { 
+  getOptimizedImageUrl, 
+  optimizeExternalUrl,
+  type PayloadImage 
+} from "@/shared/utils/image-optimizer";
 
 export interface TechBox {
   id: string;
@@ -52,21 +57,39 @@ export async function getTechCategories(): Promise<TechCategory[]> {
         grouped[category] = [];
       }
       
-      // Construir imágenes array
+      // Construir imágenes array con optimización
       const imagenes: string[] = [];
-      if (doc.featuredImage?.url) {
-        imagenes.push(doc.featuredImage.url);
+      
+      // Featured image optimizada
+      if (doc.featuredImage) {
+        const optimizedUrl = getOptimizedImageUrl(
+          doc.featuredImage as PayloadImage, 
+          'techBox'
+        );
+        imagenes.push(optimizedUrl);
       }
+      
+      // Gallery images optimizadas
       if (doc.gallery?.length > 0) {
         for (const item of doc.gallery) {
-          if (item.image?.url) {
-            imagenes.push(item.image.url);
+          if (item.image) {
+            const optimizedUrl = getOptimizedImageUrl(
+              item.image as PayloadImage, 
+              'techBox'
+            );
+            imagenes.push(optimizedUrl);
           }
         }
       }
-      // Imagen placeholder si no hay ninguna
+      
+      // Imagen placeholder optimizada si no hay ninguna
       if (imagenes.length === 0) {
-        imagenes.push("https://images.unsplash.com/photo-1631515242808-497c3fbd3972?w=400&h=300&fit=crop");
+        imagenes.push(optimizeExternalUrl(
+          "https://images.unsplash.com/photo-1631515242808-497c3fbd3972",
+          600,
+          400,
+          80
+        ));
       }
       
       grouped[category].push({

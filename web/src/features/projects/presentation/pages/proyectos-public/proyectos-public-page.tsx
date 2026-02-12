@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { Search, Cpu, Code, Palette, Radio, ExternalLink, X, ChevronRight, ChevronLeft, ImageIcon } from "lucide-react";
 import { motion as framerMotion } from "framer-motion";
 import { Input } from "@/shared/ui/inputs/input";
 import { Button } from "@/shared/ui/buttons/button";
+import { useImagePreloader } from "@/shared/hooks";
 import type { ProjectPublic } from "./types";
 import { CATEGORY_LABELS } from "./types";
 
@@ -19,6 +20,15 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<ProjectPublic | null>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    
+    // Memoizar array de imágenes del proyecto seleccionado
+    const selectedProjectImages = useMemo(() => {
+        if (!selectedProject) return [];
+        return [selectedProject.featuredImage, ...selectedProject.gallery].filter(Boolean) as string[];
+    }, [selectedProject]);
+    
+    // Precargar imágenes cuando se abre el modal
+    useImagePreloader(selectedProjectImages, currentImageIndex, 3, !!selectedProject);
 
     // Filter projects
     const filteredProjects = projects.filter((project) => {

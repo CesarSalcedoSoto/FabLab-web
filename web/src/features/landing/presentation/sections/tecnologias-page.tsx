@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/ui/buttons/button";
 import { Input } from "@/shared/ui/inputs/input";
+import { usePreloadImages } from "@/shared/hooks";
 
 // ============================================================================
 // TYPES
@@ -245,6 +246,56 @@ function SearchBar({ searchQuery, setSearchQuery }: SearchBarProps) {
   );
 }
 
+// Category Section with image preloading
+interface CategorySectionProps {
+  categoria: CategoriaEquipo;
+  equipos: Equipo[];
+  onOpenDetail: (equipo: Equipo) => void;
+}
+
+function CategorySection({ categoria, equipos, onOpenDetail }: CategorySectionProps) {
+  const [isHovering, setIsHovering] = useState(false);
+  const Icon = iconosPorCategoria[categoria];
+
+  // Recopilar todas las imágenes de los equipos en esta categoría
+  const allCategoryImages = useMemo(() => {
+    return equipos.map(e => e.imagen).filter(Boolean);
+  }, [equipos]);
+
+  // Precargar todas las imágenes cuando el usuario hace hover sobre la categoría
+  usePreloadImages(allCategoryImages, isHovering);
+
+  return (
+    <div 
+      className="mb-12"
+      onMouseEnter={() => setIsHovering(true)}
+    >
+      {/* Category Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className={`p-3 rounded-xl bg-gradient-to-r ${coloresPorCategoria[categoria]}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">{categoria}</h2>
+          <p className="text-sm text-gray-500">{equipos.length} equipos disponibles</p>
+        </div>
+      </div>
+
+      {/* Equipment Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {equipos.map((equipo, index) => (
+          <EquipmentCard
+            key={equipo.id}
+            equipo={equipo}
+            index={index}
+            onOpenDetail={onOpenDetail}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Equipment Card
 interface EquipmentCardProps {
   equipo: Equipo;
@@ -254,6 +305,10 @@ interface EquipmentCardProps {
 
 function EquipmentCard({ equipo, index, onOpenDetail }: EquipmentCardProps) {
   const Icon = iconosPorCategoria[equipo.categoria];
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Precargar la imagen del equipo cuando se hace hover
+  usePreloadImages([equipo.imagen], isHovering);
 
   return (
     <motion.article
@@ -263,6 +318,8 @@ function EquipmentCard({ equipo, index, onOpenDetail }: EquipmentCardProps) {
       transition={{ duration: 0.5, delay: index * 0.05 }}
       className="group cursor-pointer"
       onClick={() => onOpenDetail(equipo)}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       <div className={`bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 hover:-translate-y-2 border ${bgPorCategoria[equipo.categoria]}`}>
         {/* Image */}
@@ -654,35 +711,14 @@ export function TecnologiasPage() {
             </p>
           </div>
         ) : (
-          Object.entries(equiposPorCategoria).map(([categoria, equipos]) => {
-            const Icon = iconosPorCategoria[categoria as CategoriaEquipo];
-            return (
-              <div key={categoria} className="mb-12">
-                {/* Category Header */}
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${coloresPorCategoria[categoria as CategoriaEquipo]}`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{categoria}</h2>
-                    <p className="text-sm text-gray-500">{equipos.length} equipos disponibles</p>
-                  </div>
-                </div>
-
-                {/* Equipment Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {equipos.map((equipo, index) => (
-                    <EquipmentCard
-                      key={equipo.id}
-                      equipo={equipo}
-                      index={index}
-                      onOpenDetail={setSelectedEquipo}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })
+          Object.entries(equiposPorCategoria).map(([categoria, equipos]) => (
+            <CategorySection
+              key={categoria}
+              categoria={categoria as CategoriaEquipo}
+              equipos={equipos}
+              onOpenDetail={setSelectedEquipo}
+            />
+          ))
         )}
       </section>
 
