@@ -1,27 +1,63 @@
-# Docker Compose - FabLab CMS (Strapi)
+# Docker Compose - FabLab CMS (Payload embebido en Next.js)
 # Simple - Puerto 9010
 
 services:
-  cms:
-    build: ./cms
-    container_name: fablab-cms
-    ports:
-      - "9010:1337"
+  db:
+    image: postgres:16-alpine
+    container_name: fablab-db
+    restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      - DATABASE_CLIENT=${DATABASE_CLIENT:-postgres}
-      - DATABASE_HOST=${DATABASE_HOST}
-      - DATABASE_PORT=${DATABASE_PORT:-5432}
-      - DATABASE_NAME=${DATABASE_NAME:-strapi}
-      - DATABASE_USERNAME=${DATABASE_USERNAME:-strapi}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-strapi123}
-      - HOST=0.0.0.0
-      - PORT=1337
-      - NODE_ENV=production
-      - APP_KEYS=${APP_KEYS}
-      - API_TOKEN_SALT=${API_TOKEN_SALT}
-      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
-      - TRANSFER_TOKEN_SALT=${TRANSFER_TOKEN_SALT}
-      - JWT_SECRET=${JWT_SECRET}
+      POSTGRES_USER: ${POSTGRES_USER:-fablab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fablab_secret_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-fablab_blog}
+    ports:
+      - "127.0.0.1:9012:5432"
+    volumes:
+      - fablab-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cms:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_STRAPI_URL: ${NEXT_PUBLIC_STRAPI_URL}
+        NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
+        NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_LARAVEL_URL}
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    container_name: fablab-cms
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
+      NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_LARAVEL_URL}
+      NEXT_PUBLIC_STRAPI_URL: ${NEXT_PUBLIC_STRAPI_URL}
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    ports:
+      - "127.0.0.1:9010:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - web-media:/app/public/media
 
 volumes:
+  fablab-postgres-data:
+  web-media:
 

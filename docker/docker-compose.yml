@@ -2,65 +2,29 @@ version: '3.8'
 
 services:
   # ========================
-  # MySQL Database - Puerto interno 3306
+  # PostgreSQL Database - Puerto interno 5432
   # ========================
   db:
-    image: mysql:8.4
+    image: postgres:16-alpine
     container_name: fablab-db
     restart: unless-stopped
     env_file:
       - ../.env
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-FabLab2025!Root}
-      MYSQL_DATABASE: fablab_strapi
-      MYSQL_USER: fablab
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-FabLab2025!Secure}
+      POSTGRES_USER: ${POSTGRES_USER:-fablab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fablab_secret_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-fablab_blog}
     ports:
-      - "127.0.0.1:9013:3306" # Puerto externo 9013
+      - "127.0.0.1:9012:5432"
     volumes:
-      - fablab-mysql-data:/var/lib/mysql
+      - fablab-postgres-data:/var/lib/postgresql/data
     networks:
       - fablab-network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-FabLab2025!Root}" ]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ========================
-  # CMS (Strapi/Payload) - Puerto 9010
-  # ========================
-  # Nota: El servicio 'cms' original apuntaba a Strapi. 
-  # Si se usa Payload integrado en Web, este servicio podría ser redundante.
-  # Se mantiene por compatibilidad legacy hasta migración total.
-  cms:
-    build:
-      context: ../cms
-      dockerfile: Dockerfile
-    container_name: fablab-cms
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - ../.env
-    environment:
-      DATABASE_CLIENT: mysql
-      DATABASE_HOST: db
-      DATABASE_PORT: 3306
-      DATABASE_NAME: fablab_strapi
-      DATABASE_USERNAME: fablab
-      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-FabLab2025!Secure}
-      DATABASE_SSL: "false"
-      HOST: 0.0.0.0
-      PORT: 1337
-      NODE_ENV: production
-    ports:
-      - "127.0.0.1:3010:1337"
-    volumes:
-      - cms-uploads:/app/public/uploads
-    networks:
-      - fablab-network
 
   # ========================
   # WEB (Next.js + Payload) - Puerto 9011
@@ -72,7 +36,8 @@ services:
       args:
         NEXT_PUBLIC_STRAPI_URL: ${NEXT_PUBLIC_STRAPI_URL}
         NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
-        NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
+        NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_LARAVEL_URL}
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
         NEXTAUTH_URL: ${NEXTAUTH_URL}
         NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
     container_name: fablab-web
@@ -82,33 +47,28 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      STRAPI_API_URL: http://cms:1337
+      DATABASE_URL: ${DATABASE_URL}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      NEXT_PUBLIC_VESSEL_API_URL: ${NEXT_PUBLIC_VESSEL_API_URL}
+      NEXT_PUBLIC_LARAVEL_URL: ${NEXT_PUBLIC_LARAVEL_URL}
+      NEXT_PUBLIC_STRAPI_URL: ${NEXT_PUBLIC_STRAPI_URL}
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
     ports:
-      - "127.0.0.1:3011:3000"
+      - "127.0.0.1:9011:3000"
     depends_on:
-      - cms
-    networks:
-      - fablab-network
-
-  # ========================
-  # UPDATER (Auto-Update Sidecar)
-  # ========================
-  updater:
-    build: 
-      context: ./updater
-    container_name: fablab-updater
-    restart: unless-stopped
+      db:
+        condition: service_healthy
     volumes:
-      - ../:/app            # Mount project root to check for git changes
-      - /var/run/docker.sock:/var/run/docker.sock # Control sibling containers
-    environment:
-      UPDATE_INTERVAL: 300 # Check every 5 minutes
+      - web-media:/app/public/media
     networks:
       - fablab-network
 
 volumes:
-  fablab-mysql-data:
-  cms-uploads:
+  fablab-postgres-data:
+  web-media:
 
 networks:
   fablab-network:
