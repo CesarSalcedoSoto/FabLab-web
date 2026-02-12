@@ -5,8 +5,20 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
+# Instalar dependencias del sistema necesarias para compilar módulos nativos
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
-RUN npm ci
+
+# Instalar dependencias incluyendo las opcionales y reconstruir sharp para linux-x64
+RUN npm ci --include=optional && \
+    npm rebuild sharp --platform=linux --arch=x64 && \
+    npm rebuild lightningcss --platform=linux --arch=x64
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
