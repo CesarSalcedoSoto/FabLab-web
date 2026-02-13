@@ -63,12 +63,16 @@ export default function WebGroupLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <WebLayout>
-          {children}
-        </WebLayout>
-      </ToastProvider>
-    </AuthProvider>
+    <html lang="es">
+      <body className={inter.className}>
+        <AuthProvider>
+          <ToastProvider>
+            <WebLayout>
+              {children}
+            </WebLayout>
+          </ToastProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

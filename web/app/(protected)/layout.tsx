@@ -39,10 +39,14 @@ export default function ProtectedGroupLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <AuthProvider>
-            <ToastProvider>
-                {children}
-            </ToastProvider>
-        </AuthProvider>
+        <html lang="es">
+            <body className={inter.className}>
+                <AuthProvider>
+                    <ToastProvider>
+                        {children}
+                    </ToastProvider>
+                </AuthProvider>
+            </body>
+        </html>
     );
 }

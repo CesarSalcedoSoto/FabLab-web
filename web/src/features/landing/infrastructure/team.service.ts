@@ -45,16 +45,15 @@ function mapRepoMember(m: any): TeamMemberUI {
 export async function fetchTeamMembers(): Promise<TeamMemberUI[]> {
   try {
     const res = await fetch(TEAM_MEMBERS_ENDPOINT, { headers, cache: "no-store" });
-    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const json = await res.json().catch(() => null);
 
-    const json = await res.json();
-    // La API ahora retorna { data: TeamMember[] } donde TeamMember es el formato del repositorio
-    if (Array.isArray(json.data)) {
+    // La API retorna { data: TeamMember[] } incluso en errores
+    if (json && Array.isArray(json.data)) {
       return json.data.map(mapRepoMember);
     }
     return [];
-  } catch (err) {
-    console.error("Error fetching team members", err);
+  } catch {
+    // Silently return empty array – the team section will simply be empty
     return [];
   }
 }

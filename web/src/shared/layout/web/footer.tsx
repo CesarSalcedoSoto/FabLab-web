@@ -163,7 +163,7 @@ export function Footer() {
             <div className="text-xs text-gray-600 flex items-center gap-2">
               <span>Desarrollado por César Salcedo Soto</span>
               <span className="text-gray-700">•</span>
-              <span>Versión 1.3</span>
+              <span>Versión 1.4</span>
             </div>
           </div>
 

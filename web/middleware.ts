@@ -44,19 +44,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protect CMS routes (Payload tiene su propia autenticación)
-  if (pathname.startsWith("/cms")) {
-    if (!token) {
-      const loginUrl = req.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      return NextResponse.redirect(loginUrl);
-    }
-    return NextResponse.next();
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/control-iot/:path*", "/cms/:path*"],
+  matcher: ["/admin/:path*", "/control-iot/:path*"],
 };
