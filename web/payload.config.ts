@@ -49,12 +49,11 @@ export default buildConfig({
 
     // PostgreSQL
     db: postgresAdapter({
-        pool: {
-            connectionString: DATABASE_URL,
-        },
-        // Disable interactive schema push to prevent server hangs in development
-        push: false,
-    }),
+    pool: {
+        connectionString: DATABASE_URL,
+    },
+    push: true,  // Cambiar a true para que cree las tablas automáticamente
+}),
 
     // Editor Lexical
     editor: lexicalEditor({}),
