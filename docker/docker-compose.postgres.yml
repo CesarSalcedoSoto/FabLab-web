@@ -9,7 +9,7 @@ services:
     container_name: fablab-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:9012:5432"
     environment:
       POSTGRES_DB: fablab_blog
       POSTGRES_USER: fablab

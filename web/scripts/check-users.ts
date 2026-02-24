@@ -2,7 +2,7 @@ import pg from 'pg';
 
 async function checkUsers() {
     const client = new pg.Client({ 
-        connectionString: 'postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog' 
+        connectionString: 'postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog' 
     });
     
     await client.connect();

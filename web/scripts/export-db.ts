@@ -6,7 +6,7 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog';
 const OUTPUT_DIR = path.join('C:', 'Users', 'cesar', 'Desktop', 'fablab-postgres');
 
 async function exportDB() {

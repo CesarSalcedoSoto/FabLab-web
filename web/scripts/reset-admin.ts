@@ -10,7 +10,7 @@ async function resetAdmin() {
     console.log('🔄 Reseteando base de datos y usuario administrador...');
 
     // Limpiar TODA la base de datos para evitar problemas de enums corruptos
-    const DATABASE_URL = process.env.DATABASE_URL || 'postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog';
+    const DATABASE_URL = process.env.DATABASE_URL || 'postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog';
     const client = new pg.Client({ connectionString: DATABASE_URL });
     
     try {

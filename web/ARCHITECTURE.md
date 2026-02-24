@@ -88,7 +88,7 @@ Luego reiniciar `npm run dev`.
 
 ```env
 # Base de datos PostgreSQL
-DATABASE_URL=postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog
+DATABASE_URL=postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog
 
 # Payload CMS
 PAYLOAD_SECRET=fablab-payload-secret-dev

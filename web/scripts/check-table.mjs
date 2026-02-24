@@ -1,6 +1,6 @@
 import pg from 'pg';
 const { Client } = pg;
-const c = new Client('postgres://fablab:fablab_secret_2024@localhost:5432/fablab_blog');
+const c = new Client('postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog');
 await c.connect();
 
 // 1. Create bidireccionEntries table

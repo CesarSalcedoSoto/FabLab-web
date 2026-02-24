@@ -29,11 +29,11 @@ else
 fi
 
 echo ""
-echo "2. Verificando puerto 5432..."
-if netstat -tuln | grep -q ":5432"; then
-    echo "✓ Puerto 5432 está abierto"
+echo "2. Verificando puerto 9012..."
+if netstat -tuln | grep -q ":9012"; then
+    echo "✓ Puerto 9012 está abierto"
 else
-    echo "⚠️  Puerto 5432 no está escuchando"
+    echo "⚠️  Puerto 9012 no está escuchando"
 fi
 
 echo ""
@@ -52,13 +52,13 @@ echo ""
 echo "4. Información de conexión:"
 echo ""
 echo "Host: 172.17.0.1 (desde contenedores Docker)"
-echo "Port: 5432"
+echo "Port: 9012 (mapeado a 5432 interno del contenedor)"
 echo "Database: fablab_blog"
 echo "User: fablab"
 echo "Password: fablab_secret_2024"
 echo ""
 echo "DATABASE_URL:"
-echo "postgresql://fablab:fablab_secret_2024@172.17.0.1:5432/fablab_blog"
+echo "postgresql://fablab:fablab_secret_2024@172.17.0.1:9012/fablab_blog"
 echo ""
 echo "============================================"
 echo ""

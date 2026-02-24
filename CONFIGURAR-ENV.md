@@ -8,13 +8,13 @@
 **Ejemplos:**
 ```bash
 # Base de datos externa en otro servidor
-DATABASE_URL=postgresql://fablab_user:MiPassword123@192.168.1.100:5432/fablab_production
+DATABASE_URL=postgresql://fablab_user:MiPassword123@192.168.1.100:9012/fablab_production
 
 # Base de datos en servicio cloud (ej: Render, Railway, Supabase)
 DATABASE_URL=postgresql://user:pass@dpg-abc123.oregon-postgres.render.com:5432/fablab_db
 
 # Con SSL requerido (algunos proveedores lo exigen)
-DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+DATABASE_URL=postgresql://user:pass@host:9012/dbname?sslmode=require
 ```
 
 **Cómo obtenerla:**

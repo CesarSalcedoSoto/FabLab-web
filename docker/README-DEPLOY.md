@@ -55,7 +55,7 @@ nano .env
 
 **Variables críticas:**
 ```bash
-DATABASE_URL=postgresql://usuario:password@host:5432/database
+DATABASE_URL=postgresql://usuario:password@host:9012/database
 PAYLOAD_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_URL=https://app.tudominio.com
@@ -207,7 +207,7 @@ docker compose -f docker-compose.web.yml up -d
 cat ../.env | grep DATABASE_URL
 
 # Probar conexión desde el servidor
-psql "postgresql://usuario:password@host:5432/database"
+psql "postgresql://usuario:password@host:9012/database"
 
 # Verificar firewall de la BD externa
 # Asegurar que la IP del servidor está permitida
