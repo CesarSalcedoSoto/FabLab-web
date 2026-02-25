@@ -20,7 +20,7 @@ export class PayloadBlogClient {
     private token?: string;
 
     constructor(config: PayloadBlogClientConfig = {}) {
-        this.baseUrl = config.baseUrl || process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000';
+        this.baseUrl = config.baseUrl || process.env.NEXT_PUBLIC_SERVER_URL || '';
         this.token = config.token;
     }
 

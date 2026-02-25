@@ -48,6 +48,13 @@ const nextConfig: NextConfig = {
         pathname: "/media/**",
       },
       {
+        // Payload CMS Media - servidor de producción
+        protocol: "http",
+        hostname: "195.35.42.214",
+        port: "9011",
+        pathname: "/media/**",
+      },
+      {
         // Producción
         protocol: "https",
         hostname: "**.tudominio.com",

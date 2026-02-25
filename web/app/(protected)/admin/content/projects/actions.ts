@@ -159,7 +159,18 @@ export async function createProject(formData: FormData): Promise<{ success: bool
         }
 
         const title = formData.get('title') as string;
-        const slug = (formData.get('slug') as string) || title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        let slug = (formData.get('slug') as string) || title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+        // Verificar unicidad del slug y agregar sufijo si ya existe
+        const existingSlug = await payload.find({
+            collection: 'projects',
+            where: { slug: { equals: slug } },
+            limit: 1,
+            overrideAccess: true,
+        });
+        if (existingSlug.docs.length > 0) {
+            slug = `${slug}-${Date.now().toString(36)}`;
+        }
 
         // Horas de práctica
         const practiceHoursEnabled = formData.get('practiceHoursEnabled') === 'true';
@@ -169,6 +180,17 @@ export async function createProject(formData: FormData): Promise<{ success: bool
                 practiceHours = JSON.parse(formData.get('practiceHours') as string || '{}');
             } catch { practiceHours = {}; }
         }
+
+        console.log('[createProject] Creating project with data:', {
+            title, slug,
+            category: formData.get('category'),
+            status: formData.get('status'),
+            technologies: technologies.length,
+            creators: creators.length,
+            links: links.length,
+            hasImage: !!featuredImageId,
+            galleryCount: gallery.length,
+        });
 
         await payload.create({
             collection: 'projects',
@@ -195,7 +217,8 @@ export async function createProject(formData: FormData): Promise<{ success: bool
         return { success: true };
     } catch (error: any) {
         console.error('Error creating project:', error);
-        return { success: false, error: error.message };
+        const errorMessage = error?.data?.errors?.[0]?.message || error.message || 'Error desconocido al crear proyecto';
+        return { success: false, error: errorMessage };
     }
 }
 
@@ -291,8 +314,9 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
         revalidatePath('/proyectos');
         return { success: true };
     } catch (error: any) {
-        console.error('Error:', error);
-        return { success: false, error: error.message };
+        console.error('[updateProject] Error:', error);
+        const errorMessage = error?.data?.errors?.[0]?.message || error.message || 'Error desconocido al actualizar proyecto';
+        return { success: false, error: errorMessage };
     }
 }
 

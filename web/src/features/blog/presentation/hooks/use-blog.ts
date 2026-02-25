@@ -69,7 +69,7 @@ export function useBlog(): UseBlogResult {
   const client = useMemo(() => {
     const token = getCookie('fablab_jwt');
     return new PayloadBlogClient({
-      baseUrl: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
+      baseUrl: process.env.NEXT_PUBLIC_SERVER_URL || '',
       token,
     });
   }, []);

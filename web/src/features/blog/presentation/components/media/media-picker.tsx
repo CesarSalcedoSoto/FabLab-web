@@ -11,7 +11,7 @@ import {
     SheetDescription,
     SheetFooter,
 } from "@/shared/ui/misc/sheet";
-import { Loader2, Upload, Search, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Loader2, Upload, Search, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import type { PayloadMedia } from "../../../infrastructure/payload/types";
@@ -32,8 +32,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) 
     const loadMedia = async () => {
         setLoading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || "";
-            const res = await fetch(`${baseUrl}/api/payload/media?limit=50&sort=-createdAt`);
+            const res = await fetch(`/api/payload/media?limit=50&sort=-createdAt`);
             if (!res.ok) throw new Error("Error cargando media");
             const data = await res.json();
             setMediaList(data.docs || []);
@@ -57,17 +56,20 @@ export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) 
 
         setUploading(true);
         const formData = new FormData();
+        const altText = file.name.replace(/\.[^/.]+$/, "");
         formData.append("file", file);
-        formData.append("alt", file.name); // Default alt text
+        formData.append("_payload", JSON.stringify({ alt: altText }));
 
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || "";
-            const res = await fetch(`${baseUrl}/api/payload/media`, {
+            const res = await fetch(`/api/payload/media`, {
                 method: "POST",
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("Error subiendo imagen");
+            if (!res.ok) {
+                const message = await res.text();
+                throw new Error(message || "Error subiendo imagen");
+            }
 
             const data = await res.json();
             toast.success("Imagen subida exitosamente");
@@ -76,7 +78,7 @@ export function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) 
             onOpenChange(false);
         } catch (error) {
             console.error(error);
-            toast.error("Error al subir la imagen");
+            toast.error(error instanceof Error ? error.message : "Error al subir la imagen");
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
