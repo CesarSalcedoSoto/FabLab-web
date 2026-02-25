@@ -9,7 +9,7 @@ services:
     container_name: fablab-db
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fablab}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fablab_secret_2024}
@@ -43,7 +43,7 @@ services:
     container_name: fablab-web
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env
     environment:
       NODE_ENV: production
       PORT: 3000
