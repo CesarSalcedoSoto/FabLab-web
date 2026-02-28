@@ -55,7 +55,19 @@ const nextConfig: NextConfig = {
         pathname: "/media/**",
       },
       {
-        // Producción
+        // Payload CMS Media - dominio principal (HTTPS)
+        protocol: "https",
+        hostname: "fablablosangeles.com",
+        pathname: "/media/**",
+      },
+      {
+        // Payload CMS Media - dominio www (HTTPS)
+        protocol: "https",
+        hostname: "www.fablablosangeles.com",
+        pathname: "/media/**",
+      },
+      {
+        // Producción genérica
         protocol: "https",
         hostname: "**.tudominio.com",
         pathname: "/**",

@@ -20,7 +20,8 @@ export class PayloadBlogClient {
     private token?: string;
 
     constructor(config: PayloadBlogClientConfig = {}) {
-        this.baseUrl = config.baseUrl || process.env.NEXT_PUBLIC_SERVER_URL || '';
+        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || '';
+        this.baseUrl = config.baseUrl ?? (typeof window === 'undefined' ? serverUrl : '');
         this.token = config.token;
     }
 

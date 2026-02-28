@@ -22,6 +22,10 @@ const dirname = path.dirname(filename);
 
 // URL de conexión a PostgreSQL
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://fablab:fablab_secret_2024@localhost:9012/fablab_blog';
+const PAYLOAD_SERVER_URL =
+    process.env.PAYLOAD_PUBLIC_SERVER_URL ||
+    process.env.SERVER_URL ||
+    process.env.NEXT_PUBLIC_SERVER_URL;
 
 export default buildConfig({
     admin: {
@@ -62,8 +66,8 @@ export default buildConfig({
     sharp,
 
     // Server URL en producción
-    ...(process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SERVER_URL
-        ? { serverURL: process.env.NEXT_PUBLIC_SERVER_URL }
+    ...(process.env.NODE_ENV === 'production' && PAYLOAD_SERVER_URL
+        ? { serverURL: PAYLOAD_SERVER_URL }
         : {}),
 
     // GraphQL
