@@ -20,6 +20,22 @@ interface PayloadProject {
 }
 
 /**
+ * Normaliza URL de media a ruta relativa
+ */
+function normalizeMediaUrl(url: string): string {
+    if (url.startsWith('/')) return url;
+    try {
+        return new URL(url).pathname;
+    } catch {
+        const idx = url.indexOf('/api/');
+        if (idx !== -1) return url.substring(idx);
+        const mIdx = url.indexOf('/media/');
+        if (mIdx !== -1) return url.substring(mIdx);
+        return url;
+    }
+}
+
+/**
  * Obtiene proyectos destacados desde Payload CMS
  */
 export async function getFeaturedProjects(): Promise<ProjectBox[]> {
@@ -44,14 +60,15 @@ export async function getFeaturedProjects(): Promise<ProjectBox[]> {
       
       // Primero la imagen principal/destacada
       if (project.featuredImage?.url) {
-        imagenes.push(project.featuredImage.url);
+        imagenes.push(normalizeMediaUrl(project.featuredImage.url));
       }
       
       // Luego las imágenes de la galería
       if (project.gallery && project.gallery.length > 0) {
         project.gallery.forEach((item) => {
-          if (item.image?.url && !imagenes.includes(item.image.url)) {
-            imagenes.push(item.image.url);
+          const normalizedUrl = item.image?.url ? normalizeMediaUrl(item.image.url) : null;
+          if (normalizedUrl && !imagenes.includes(normalizedUrl)) {
+            imagenes.push(normalizedUrl);
           }
         });
       }

@@ -65,10 +65,9 @@ export default buildConfig({
     // Sharp para imágenes
     sharp,
 
-    // Server URL en producción
-    ...(process.env.NODE_ENV === 'production' && PAYLOAD_SERVER_URL
-        ? { serverURL: PAYLOAD_SERVER_URL }
-        : {}),
+    // NO configurar serverURL para que las URLs de media sean siempre relativas.
+    // Esto evita problemas con proxies, dominios y mixed content.
+    // serverURL: PAYLOAD_SERVER_URL,
 
     // GraphQL
     graphQL: {

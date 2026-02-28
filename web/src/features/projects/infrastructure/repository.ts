@@ -49,6 +49,23 @@ export interface Project {
 }
 
 /**
+ * Normaliza URL de media a ruta relativa
+ */
+function normalizeMediaUrl(url: string | undefined | null): string | undefined {
+    if (!url) return undefined;
+    if (url.startsWith('/')) return url;
+    try {
+        return new URL(url).pathname;
+    } catch {
+        const idx = url.indexOf('/api/');
+        if (idx !== -1) return url.substring(idx);
+        const mIdx = url.indexOf('/media/');
+        if (mIdx !== -1) return url.substring(mIdx);
+        return url;
+    }
+}
+
+/**
  * Transforma datos de Payload a tipo Project
  */
 function transformProject(doc: any): Project {
@@ -59,15 +76,15 @@ function transformProject(doc: any): Project {
         category: doc.category,
         description: doc.description,
         content: doc.content,
-        featuredImage: typeof doc.featuredImage === 'object' ? doc.featuredImage?.url : undefined,
+        featuredImage: normalizeMediaUrl(typeof doc.featuredImage === 'object' ? doc.featuredImage?.url : undefined),
         gallery: doc.gallery?.map((g: any) =>
-            typeof g.image === 'object' ? g.image?.url : undefined
+            normalizeMediaUrl(typeof g.image === 'object' ? g.image?.url : undefined)
         ).filter(Boolean) || [],
         technologies: doc.technologies?.map((t: any) => t.name) || [],
         creators: doc.creators?.map((c: any) => ({
             id: c.teamMember?.id ? String(c.teamMember.id) : undefined,
             name: c.teamMember?.name || c.externalName || '',
-            image: typeof c.teamMember?.image === 'object' ? c.teamMember.image?.url : undefined,
+            image: normalizeMediaUrl(typeof c.teamMember?.image === 'object' ? c.teamMember.image?.url : undefined),
             role: c.role,
             isTeamMember: Boolean(c.teamMember),
         })) || [],

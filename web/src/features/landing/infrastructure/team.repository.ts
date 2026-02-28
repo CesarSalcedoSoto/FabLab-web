@@ -38,6 +38,23 @@ export interface TeamMember {
 }
 
 /**
+ * Normaliza URL de media a ruta relativa
+ */
+function normalizeMediaUrl(url: string | undefined | null): string | undefined {
+    if (!url) return undefined;
+    if (url.startsWith('/')) return url;
+    try {
+        return new URL(url).pathname;
+    } catch {
+        const idx = url.indexOf('/api/');
+        if (idx !== -1) return url.substring(idx);
+        const mIdx = url.indexOf('/media/');
+        if (mIdx !== -1) return url.substring(mIdx);
+        return url;
+    }
+}
+
+/**
  * Transforma datos de Payload a tipo TeamMember
  */
 function transformMember(doc: any): TeamMember {
@@ -47,7 +64,7 @@ function transformMember(doc: any): TeamMember {
         role: doc.jobTitle || 'Miembro del Equipo', // Map jobTitle to role
         category: doc.category || 'specialist',
         specialty: doc.specialty,
-        image: typeof doc.avatar === 'object' ? doc.avatar?.url : undefined, // Map avatar to image
+        image: normalizeMediaUrl(typeof doc.avatar === 'object' ? doc.avatar?.url : undefined),
         bio: doc.bio,
         experience: doc.experience,
         achievements: doc.achievements?.map((a: any) => a.achievement) || [],

@@ -43,6 +43,32 @@ export class PayloadBlogClient {
         return res.json();
     }
 
+    // ==================== HELPERS DE URL ====================
+
+    /**
+     * Normaliza una URL de media para que sea relativa.
+     * Si Payload devuelve URL absoluta (ej: http://195.35.42.214:9011/api/payload/media/...),
+     * la convierte a solo /api/payload/media/...
+     */
+    private normalizeMediaUrl(url: string | undefined | null): string | undefined {
+        if (!url) return undefined;
+        // Si ya es relativa, devolver tal cual
+        if (url.startsWith('/')) return url;
+        // Extraer la ruta relativa de una URL absoluta
+        try {
+            const parsed = new URL(url);
+            return parsed.pathname;
+        } catch {
+            // Si no se puede parsear, intentar extraer desde /api/
+            const apiIndex = url.indexOf('/api/');
+            if (apiIndex !== -1) return url.substring(apiIndex);
+            // Intentar desde /media/
+            const mediaIndex = url.indexOf('/media/');
+            if (mediaIndex !== -1) return url.substring(mediaIndex);
+            return url;
+        }
+    }
+
     // ==================== VALIDACIÓN Y SANITIZACIÓN ====================
 
     /** Sanitiza un string removiendo caracteres peligrosos */
@@ -108,10 +134,10 @@ export class PayloadBlogClient {
             slug: payloadPost.slug || '',
             contenido: this.serializeRichText(payloadPost.content),
             extracto: payloadPost.excerpt,
-            imagenPortada: featuredImage?.url,
+            imagenPortada: this.normalizeMediaUrl(featuredImage?.url),
             imagenDestacada: featuredImage ? {
                 id: String(featuredImage.id),
-                url: featuredImage.url,
+                url: this.normalizeMediaUrl(featuredImage.url) || '',
                 filename: featuredImage.filename,
                 alt: featuredImage.alt,
                 width: featuredImage.width,
@@ -120,7 +146,7 @@ export class PayloadBlogClient {
             autor: author ? {
                 id: String(author.id),
                 nombre: author.name || author.email,
-                avatar: (author.avatar as PayloadMedia)?.url,
+                avatar: this.normalizeMediaUrl((author.avatar as PayloadMedia)?.url),
                 bio: author.bio,
             } : undefined,
             categorias: categories?.map(cat => ({

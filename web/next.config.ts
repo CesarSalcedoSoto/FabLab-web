@@ -44,27 +44,25 @@ const nextConfig: NextConfig = {
         // Payload CMS Media - localhost development
         protocol: "http",
         hostname: "localhost",
-        port: "3000",
-        pathname: "/media/**",
+        pathname: "/api/payload/media/**",
       },
       {
-        // Payload CMS Media - servidor de producción
+        // Payload CMS Media - servidor IP (HTTP, cualquier puerto)
         protocol: "http",
         hostname: "195.35.42.214",
-        port: "9011",
-        pathname: "/media/**",
+        pathname: "/**",
       },
       {
         // Payload CMS Media - dominio principal (HTTPS)
         protocol: "https",
         hostname: "fablablosangeles.com",
-        pathname: "/media/**",
+        pathname: "/**",
       },
       {
         // Payload CMS Media - dominio www (HTTPS)
         protocol: "https",
         hostname: "www.fablablosangeles.com",
-        pathname: "/media/**",
+        pathname: "/**",
       },
       {
         // Producción genérica
