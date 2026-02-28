@@ -9,10 +9,10 @@ FROM base AS deps
 COPY package*.json ./
 
 # Instalar deps + forzar TODOS los binarios nativos para linux-x64
-RUN npm ci --include=optional && \
-    npm install --os=linux --cpu=x64 sharp && \
-    npm install lightningcss-linux-x64-gnu && \
-    npm install @tailwindcss/oxide-linux-x64-gnu
+RUN npm ci --include=optional --legacy-peer-deps && \
+    npm install --os=linux --cpu=x64 sharp --legacy-peer-deps && \
+    npm install lightningcss-linux-x64-gnu --legacy-peer-deps && \
+    npm install @tailwindcss/oxide-linux-x64-gnu --legacy-peer-deps
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
