@@ -17,6 +17,7 @@ export { Media } from './Media.ts';
 // Blog
 export { Posts } from './Posts.ts';
 export { Categories } from './Categories.ts';
+export { BlogSubscribers } from './BlogSubscribers.ts';
 
 // Servicios y Equipamiento
 export { Services } from './Services.ts';
@@ -35,6 +36,8 @@ export { Projects } from './Projects.ts';
 
 // Eventos
 export { Events } from './Events.ts';
+export { EventRegistrations } from './EventRegistrations.ts';
+export { EventAttendance } from './EventAttendance.ts';
 
 // Recursos y Galería
 export { Resources } from './Resources.ts';
@@ -52,6 +55,7 @@ import { Users } from './Users.ts';
 import { Media } from './Media.ts';
 import { Posts } from './Posts.ts';
 import { Categories } from './Categories.ts';
+import { BlogSubscribers } from './BlogSubscribers.ts';
 import { Services } from './Services.ts';
 import { Equipment } from './Equipment.ts';
 import { EquipmentRequests } from './EquipmentRequests.ts';
@@ -60,6 +64,8 @@ import { InventoryItems } from './InventoryItems.ts';
 import { TeamMembers } from './TeamMembers.ts';
 import { Projects } from './Projects.ts';
 import { Events } from './Events.ts';
+import { EventRegistrations } from './EventRegistrations.ts';
+import { EventAttendance } from './EventAttendance.ts';
 import { Resources } from './Resources.ts';
 import { Gallery } from './Gallery.ts';
 import { FAQs } from './FAQs.ts';
@@ -73,6 +79,7 @@ export const collections = [
     // Blog
     Posts,
     Categories,
+    BlogSubscribers,
     // Servicios
     Services,
     Equipment,
@@ -86,6 +93,8 @@ export const collections = [
     Projects,
     // Eventos
     Events,
+    EventRegistrations,
+    EventAttendance,
     // Recursos y Galería
     Resources,
     Gallery,

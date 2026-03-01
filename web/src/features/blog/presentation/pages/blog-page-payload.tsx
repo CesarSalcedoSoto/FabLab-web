@@ -15,6 +15,8 @@ import {
     Newspaper,
     X,
     Loader2,
+    Mail,
+    CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -409,20 +411,89 @@ function Sidebar({ postsRecientes }: { postsRecientes: Post[] }) {
                 </div>
             </div>
 
-            {/* Newsletter Minimal */}
-            <div className="bg-gray-900 rounded-xl p-6 text-white text-center">
-                <h3 className="font-bold text-sm mb-2">Newsletter</h3>
-                <p className="text-gray-400 text-xs mb-4 leading-relaxed">
-                    Recibe lo último en fabricación digital en tu correo.
-                </p>
-                <Link
-                    href="/contacto"
-                    className="inline-block w-full py-2 bg-orange-600 text-white rounded-lg font-medium text-xs hover:bg-orange-700 transition-colors"
-                >
-                    Suscribirse
-                </Link>
-            </div>
+            {/* Newsletter — Suscripción al Blog */}
+            <NewsletterSubscribe />
         </aside>
+    );
+}
+
+// ============================================================================
+// NEWSLETTER SUBSCRIBE
+// ============================================================================
+
+function NewsletterSubscribe() {
+    const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email.trim()) return;
+
+        setLoading(true);
+        setMessage(null);
+        try {
+            const res = await fetch("/api/blog/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email.trim() }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSuccess(true);
+                setMessage(data.message || "¡Suscripción exitosa!");
+                setEmail("");
+            } else {
+                setMessage(data.error || "Error al suscribirse");
+            }
+        } catch {
+            setMessage("Error de conexión. Intenta de nuevo.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="bg-gray-900 rounded-xl p-6 text-white text-center">
+            <Mail className="w-6 h-6 text-orange-400 mx-auto mb-2" />
+            <h3 className="font-bold text-sm mb-1">Newsletter</h3>
+            <p className="text-gray-400 text-xs mb-4 leading-relaxed">
+                Recibe lo último en fabricación digital en tu correo.
+            </p>
+
+            {success ? (
+                <div className="flex items-center justify-center gap-2 text-green-400 text-xs py-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{message}</span>
+                </div>
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-2">
+                    <input
+                        type="email"
+                        placeholder="tu@correo.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                    />
+                    <button
+                        type="submit"
+                        disabled={loading || !email.trim()}
+                        className="w-full py-2 bg-orange-600 text-white rounded-lg font-medium text-xs hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <><Loader2 className="w-3 h-3 animate-spin" />Suscribiendo...</>
+                        ) : (
+                            "Suscribirse"
+                        )}
+                    </button>
+                    {message && !success && (
+                        <p className="text-red-400 text-xs">{message}</p>
+                    )}
+                </form>
+            )}
+        </div>
     );
 }
 

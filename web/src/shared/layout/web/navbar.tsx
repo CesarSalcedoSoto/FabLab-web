@@ -6,9 +6,10 @@ import Link from "next/link";
 import { Button } from "@/shared/ui/buttons/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/shared/ui/misc/sheet";
 import { Badge } from "@/shared/ui/badges/badge";
-import { Menu, Cpu, Wifi, User, ChevronDown, Settings, LogOut, BookOpen, Calendar, FileText, Newspaper } from "lucide-react";
+import { Menu, Cpu, Wifi, User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/shared/auth/useAuth";
 import { Logo } from "@/shared/ui/branding/logo";
+import Image from "next/image";
 
 interface NavigationItem {
     href: string;
@@ -16,29 +17,18 @@ interface NavigationItem {
     badge?: string;
 }
 
-interface DropdownItem {
-    href: string;
-    label: string;
-    icon: typeof Newspaper;
-    description?: string;
-}
-
-const navigationItems: NavigationItem[] = [
-    { href: "/", label: "Inicio" },
+const navigationItemsLeft: NavigationItem[] = [
     { href: "/proyectos", label: "Proyectos" },
     { href: "/tecnologias", label: "Tecnologías" },
-];
-
-const navigationItemsRight: NavigationItem[] = [
     { href: "/equipo", label: "Equipo" },
     { href: "/contacto", label: "Contacto" },
 ];
 
-const dropdownItems: DropdownItem[] = [
-    { href: "/blog", label: "Blog", icon: Newspaper, description: "Noticias y tutoriales" },
-    { href: "/eventos", label: "Eventos", icon: Calendar, description: "Talleres y actividades" },
-    { href: "/recursos", label: "Recursos", icon: FileText, description: "Guías y documentación" },
-    { href: "/galeria", label: "Galería", icon: BookOpen, description: "Fotos y videos" },
+const navigationItemsRight: NavigationItem[] = [
+    { href: "/blog", label: "Blog" },
+    { href: "/eventos", label: "Eventos" },
+    { href: "/recursos", label: "Recursos" },
+    { href: "/galeria", label: "Galería" },
 ];
 
 export function Navbar() {
@@ -80,8 +70,8 @@ export function Navbar() {
                 <Link href="/admin" className="absolute right-0 top-0 w-6 h-6 opacity-0 z-50" aria-hidden="true" tabIndex={-1} />
 
                 {/* Desktop Navigation Left */}
-                <div className="hidden lg:flex absolute left-0 top-0 h-11 w-1/3 justify-center items-center space-x-6 z-20 px-8">
-                    {navigationItems.slice(0, 3).map((item) => (
+                <div className="hidden lg:flex absolute left-0 top-0 h-11 w-[40%] justify-center items-center space-x-6 z-20 px-8">
+                    {navigationItemsLeft.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
@@ -95,16 +85,16 @@ export function Navbar() {
 
                 {/* Brand - siempre visible en el centro */}
                 <div className="hidden lg:flex absolute top-4 left-1/2 transform -translate-x-1/2 z-50 items-center justify-center">
-                    <button
-                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    <Link
+                        href="/"
                         className="inline-flex items-center group cursor-pointer"
                     >
                         <Logo size={40} className="group-hover:scale-110 transition-transform" />
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Desktop Navigation Right */}
-                <div className="hidden lg:flex absolute right-0 top-0 h-11 w-1/3 justify-center items-center space-x-6 z-20 px-8">
+                <div className="hidden lg:flex absolute right-0 top-0 h-11 w-[40%] justify-center items-center space-x-6 z-20 px-8">
                     {navigationItemsRight.map((item) => (
                         <Link
                             key={item.href}
@@ -116,51 +106,23 @@ export function Navbar() {
                         </Link>
                     ))}
 
-                    {/* Ver más dropdown - después de Contacto */}
-                    <div className="relative group">
-                        <button className="relative cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200 flex items-center gap-1">
-                            Ver más
-                            <ChevronDown className="w-3 h-3 transition-transform group-hover:rotate-180" />
-                            <span className="absolute -bottom-1 left-0 w-0 h-px bg-orange-500 transition-all duration-300 group-hover:w-full" />
-                        </button>
-
-                        {/* Dropdown menu - aparece en hover */}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                            <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-2 w-56 overflow-hidden">
-                                {dropdownItems.map((item) => {
-                                    const Icon = item.icon;
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            className="flex items-start gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors group/item"
-                                        >
-                                            <div className="p-1.5 rounded-lg bg-orange-100 text-orange-600 group-hover/item:bg-orange-500 group-hover/item:text-white transition-colors">
-                                                <Icon className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 group-hover/item:text-orange-600 transition-colors">
-                                                    {item.label}
-                                                </p>
-                                                {item.description && (
-                                                    <p className="text-xs text-gray-500">{item.description}</p>
-                                                )}
-                                            </div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
                     {user ? (
                         <div className="relative group">
                             <Link
                                 href="/admin"
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
                             >
-                                <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-white" />
+                                <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 relative">
+                                    {user.avatar ? (
+                                        <Image
+                                            src={user.avatar}
+                                            alt={user.name || 'Avatar'}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    ) : (
+                                        <User className="w-4 h-4 text-white" />
+                                    )}
                                 </div>
                                 <span className="text-sm font-medium text-gray-700 hidden sm:inline">
                                     {user.name || "Usuario"}
@@ -214,17 +176,17 @@ export function Navbar() {
                     </SheetTrigger>
                     <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                         <div className="flex flex-col space-y-6 mt-6">
-                            <div className="flex items-center space-x-3">
+                            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-3">
                                 <Logo size={36} />
                                 <div>
                                     <h2 className="font-bold text-lg">FabLab INACAP</h2>
                                     <p className="text-xs text-muted-foreground">Los Ángeles</p>
                                 </div>
-                            </div>
+                            </Link>
 
                             <div className="flex flex-col space-y-1">
                                 {/* Navegación principal */}
-                                {[...navigationItems, ...navigationItemsRight].map((item) => (
+                                {[...navigationItemsLeft, ...navigationItemsRight].map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
@@ -241,33 +203,21 @@ export function Navbar() {
                                     </Link>
                                 ))}
 
-                                {/* Ver más section */}
-                                <div className="pt-3 mt-2 border-t">
-                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide px-2 mb-2">
-                                        Ver más
-                                    </p>
-                                    {dropdownItems.map((item) => {
-                                        const Icon = item.icon;
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                                className="flex items-center gap-3 text-base font-medium hover:text-orange-500 transition-colors duration-200 p-2 rounded-lg hover:bg-orange-50"
-                                            >
-                                                <Icon className="w-4 h-4 text-orange-500" />
-                                                <span>{item.label}</span>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-
                                 {/* Usuario autenticado: mostrar info y opciones */}
                                 {user && (
                                     <div className="pt-3 border-t mt-2">
                                         <div className="flex items-center gap-3 px-2 py-2 mb-2">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                                                <User className="w-4 h-4 text-white" />
+                                            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 relative">
+                                                {user.avatar ? (
+                                                    <Image
+                                                        src={user.avatar}
+                                                        alt={user.name || 'Avatar'}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                ) : (
+                                                    <User className="w-4 h-4 text-white" />
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">{user.name}</p>

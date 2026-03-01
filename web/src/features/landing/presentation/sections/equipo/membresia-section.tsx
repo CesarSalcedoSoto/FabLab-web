@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/buttons/button";
-import { beneficiosMembresia } from "./data";
 
 export function MembresiaSection() {
   return (
@@ -13,36 +12,55 @@ export function MembresiaSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <span className="inline-block px-4 py-2 bg-orange-500/20 text-orange-600 rounded-full text-sm font-semibold mb-4">
-              Únete a Nosotros
+              Forma Parte del Equipo
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Sé parte de{" "}
+              Criterios para formar parte de{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
                 FabLab INACAP
               </span>
             </h2>
-            <p className="text-gray-600 text-lg mb-4">
-              FabLab es un espacio de innovación sin fines de lucro que te da acceso a 
-              equipos de última generación, capacitaciones, mentoría de expertos y una 
-              comunidad dedicada a la fabricación digital.
-            </p>
-            <p className="text-gray-600 text-lg mb-8">
-              Puedes unirte y colaborar en proyectos que transforman ideas en realidad.
-            </p>
-
+            {/* Criterios en grid 2x2 */}
             <div className="grid sm:grid-cols-2 gap-4 mb-8">
-              {beneficiosMembresia.map((beneficio) => (
-                <div
-                  key={beneficio.titulo}
-                  className="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm"
-                >
-                  <span className="text-2xl">{beneficio.icono}</span>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{beneficio.titulo}</h4>
-                    <p className="text-sm text-gray-500">{beneficio.descripcion}</p>
-                  </div>
+              {/* Box 1 - Estudiantes: Proyecto */}
+              <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-orange-400">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🎓</span>
+                  <span className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Estudiantes INACAP</span>
                 </div>
-              ))}
+                <h4 className="font-semibold text-gray-900 mb-1">Proyecto demostrativo</h4>
+                <p className="text-sm text-gray-600">Presentar un proyecto que demuestre habilidad o talento.</p>
+              </div>
+
+              {/* Box 2 - Estudiantes: Asistencia */}
+              <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-orange-400">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🎓</span>
+                  <span className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Estudiantes INACAP</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-1">Asistencia mínima</h4>
+                <p className="text-sm text-gray-600">Asistencia superior al 65%.</p>
+              </div>
+
+              {/* Box 3 - Estudiantes: Rendimiento */}
+              <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-orange-400">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🎓</span>
+                  <span className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Estudiantes INACAP</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-1">Rendimiento académico</h4>
+                <p className="text-sm text-gray-600">Al menos 80% de asignaturas aprobadas con nota superior a 5.</p>
+              </div>
+
+              {/* Box 4 - Externos */}
+              <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-blue-400">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🌐</span>
+                  <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Externos</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 mb-1">Propuesta técnica</h4>
+                <p className="text-sm text-gray-600">Presentar proyecto o propuesta técnica para evaluación.</p>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-4">

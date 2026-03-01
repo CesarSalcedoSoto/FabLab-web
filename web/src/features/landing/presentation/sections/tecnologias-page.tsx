@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -560,15 +561,14 @@ function EquipmentDetailModal({ equipo, isOpen, onClose }: EquipmentDetailModalP
                   {/* CTA */}
                   <div className="border-t border-gray-100 pt-6">
                     <p className="text-sm text-gray-500 mb-4">
-                      ¿Necesitas usar este equipo? Reserva tu espacio o solicita capacitación.
+                      ¿Necesitas capacitación para usar este equipo? Contáctanos.
                     </p>
                     <div className="flex flex-wrap gap-3">
-                      <Button className="bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700">
-                        Reservar Equipo
-                      </Button>
-                      <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50">
-                        Solicitar Capacitación
-                      </Button>
+                      <Link href="/contacto">
+                        <Button className="bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700">
+                          Solicitar Capacitación
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -720,44 +720,6 @@ export function TecnologiasPage() {
             />
           ))
         )}
-      </section>
-
-      {/* Certification Info */}
-      <section className="bg-gray-900 text-white py-16">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Niveles de Certificación</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Para garantizar la seguridad y el correcto uso de los equipos, 
-              contamos con un sistema de certificación por niveles.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {[
-              { nivel: "Básico", desc: "Acceso libre sin capacitación previa", color: "bg-gray-600" },
-              { nivel: "Nivel 1", desc: "Inducción básica de 1 hora", color: "bg-green-600" },
-              { nivel: "Nivel 2", desc: "Taller de 4 horas + práctica", color: "bg-yellow-600" },
-              { nivel: "Nivel 3", desc: "Curso completo de 8+ horas", color: "bg-orange-600" },
-              { nivel: "Especializado", desc: "Certificación externa requerida", color: "bg-red-600" },
-            ].map((cert, idx) => (
-              <motion.div
-                key={cert.nivel}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-gray-800 rounded-xl p-5 text-center"
-              >
-                <div className={`w-12 h-12 ${cert.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <span className="text-white font-bold">{idx}</span>
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{cert.nivel}</h3>
-                <p className="text-gray-400 text-sm">{cert.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* Equipment Detail Modal */}

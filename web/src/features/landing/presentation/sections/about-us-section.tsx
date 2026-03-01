@@ -88,15 +88,18 @@ export function AboutUsSection() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-xl md:text-2xl text-gray-300 leading-relaxed mb-12"
             >
-              Somos un equipo conformado por{" "}
+              Somos un equipo de{" "}
               <span className="text-blue-400 font-semibold">
                 {isLoading ? "..." : teamCount} personas
               </span>{" "}
-              apasionadas por la innovación y la fabricación digital. Desde ingenieros
-              y diseñadores hasta makers y entusiastas, todos compartimos un mismo objetivo:{" "}
+              comprometidas con el desarrollo tecnológico y la fabricación digital en INACAP.
+              Integramos disciplinas como ingeniería, diseño y desarrollo técnico, trabajando
+              colaborativamente para generar soluciones con impacto real. Creemos que la innovación
+              nace del talento individual y se potencia cuando se articula en equipo,{" "}
               <span className="text-purple-400 font-semibold">
-                transformar ideas en realidad
-              </span>.
+                transformando ideas en soluciones concretas
+              </span>{" "}
+              para el entorno productivo y la sociedad.
             </motion.p>
 
             {/* Valores destacados */}

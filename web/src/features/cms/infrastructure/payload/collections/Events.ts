@@ -194,6 +194,94 @@ export const Events: CollectionConfig = {
             defaultValue: 'draft',
             admin: { position: 'sidebar' },
         },
+        // Color del evento en el calendario
+        {
+            name: 'calendarColor',
+            type: 'select',
+            label: 'Color Calendario',
+            options: [
+                { label: 'Azul (Taller)', value: 'blue' },
+                { label: 'Morado (Curso)', value: 'purple' },
+                { label: 'Verde (Charla)', value: 'green' },
+                { label: 'Naranja (Hackathon)', value: 'orange' },
+                { label: 'Rosa (Open Day)', value: 'pink' },
+                { label: 'Teal (Meetup)', value: 'teal' },
+                { label: 'Rojo (Urgente)', value: 'red' },
+            ],
+            defaultValue: 'blue',
+            admin: { position: 'sidebar' },
+        },
+        // Formulario de inscripción personalizado
+        {
+            name: 'registrationFields',
+            type: 'array',
+            label: 'Campos del Formulario de Inscripción',
+            admin: {
+                description: 'Define qué campos adicionales debe llenar el inscrito (nombre, apellido y email son obligatorios siempre)',
+            },
+            fields: [
+                {
+                    name: 'fieldName',
+                    type: 'text',
+                    required: true,
+                    label: 'Nombre del Campo',
+                    admin: { description: 'Ej: "Carrera", "RUT", "Empresa"' },
+                },
+                {
+                    name: 'fieldType',
+                    type: 'select',
+                    required: true,
+                    label: 'Tipo',
+                    options: [
+                        { label: 'Texto', value: 'text' },
+                        { label: 'Email', value: 'email' },
+                        { label: 'Teléfono', value: 'tel' },
+                        { label: 'Número', value: 'number' },
+                        { label: 'Texto largo', value: 'textarea' },
+                        { label: 'Selección', value: 'select' },
+                        { label: 'Casilla (Sí/No)', value: 'checkbox' },
+                        { label: 'Firma', value: 'signature' },
+                    ],
+                    defaultValue: 'text',
+                },
+                {
+                    name: 'required',
+                    type: 'checkbox',
+                    label: 'Obligatorio',
+                    defaultValue: false,
+                },
+                {
+                    name: 'options',
+                    type: 'textarea',
+                    label: 'Opciones (para selección, una por línea)',
+                    admin: {
+                        condition: (_, siblingData) => siblingData?.fieldType === 'select',
+                    },
+                },
+            ],
+        },
+        // Habilitar inscripción directa (sin link externo)
+        {
+            name: 'enableDirectRegistration',
+            type: 'checkbox',
+            label: 'Inscripción Directa',
+            defaultValue: true,
+            admin: {
+                position: 'sidebar',
+                description: 'Permitir inscripción desde la web (si está desactivado, usar URL externa)',
+            },
+        },
+        // Requiere firma
+        {
+            name: 'requireSignature',
+            type: 'checkbox',
+            label: 'Requiere Firma',
+            defaultValue: false,
+            admin: {
+                position: 'sidebar',
+                description: 'El inscrito debe firmar digitalmente',
+            },
+        },
     ],
     hooks: {
         beforeChange: [

@@ -71,6 +71,7 @@ export interface Config {
     media: Media;
     posts: Post;
     categories: Category;
+    'blog-subscribers': BlogSubscriber;
     services: Service;
     equipment: Equipment;
     'equipment-requests': EquipmentRequest;
@@ -79,6 +80,8 @@ export interface Config {
     'team-members': TeamMember;
     projects: Project;
     events: Event;
+    'event-registrations': EventRegistration;
+    'event-attendance': EventAttendance;
     resources: Resource;
     gallery: Gallery;
     faqs: Faq;
@@ -95,6 +98,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    'blog-subscribers': BlogSubscribersSelect<false> | BlogSubscribersSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     'equipment-requests': EquipmentRequestsSelect<false> | EquipmentRequestsSelect<true>;
@@ -103,6 +107,8 @@ export interface Config {
     'team-members': TeamMembersSelect<false> | TeamMembersSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
+    'event-registrations': EventRegistrationsSelect<false> | EventRegistrationsSelect<true>;
+    'event-attendance': EventAttendanceSelect<false> | EventAttendanceSelect<true>;
     resources: ResourcesSelect<false> | ResourcesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
     faqs: FaqsSelect<false> | FaqsSelect<true>;
@@ -354,6 +360,21 @@ export interface Category {
    * Nombre del icono de Lucide (ej: "Cpu", "Printer")
    */
   icon?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-subscribers".
+ */
+export interface BlogSubscriber {
+  id: number;
+  email: string;
+  /**
+   * Desmarcar para dejar de enviar correos a este suscriptor
+   */
+  active?: boolean | null;
+  unsubscribeToken?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -780,6 +801,85 @@ export interface Event {
     | null;
   featured?: boolean | null;
   status?: ('draft' | 'published' | 'cancelled' | 'completed') | null;
+  calendarColor?: ('blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal' | 'red') | null;
+  /**
+   * Define qué campos adicionales debe llenar el inscrito (nombre, apellido y email son obligatorios siempre)
+   */
+  registrationFields?:
+    | {
+        /**
+         * Ej: "Carrera", "RUT", "Empresa"
+         */
+        fieldName: string;
+        fieldType: 'text' | 'email' | 'tel' | 'number' | 'textarea' | 'select' | 'checkbox' | 'signature';
+        required?: boolean | null;
+        options?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Permitir inscripción desde la web (si está desactivado, usar URL externa)
+   */
+  enableDirectRegistration?: boolean | null;
+  /**
+   * El inscrito debe firmar digitalmente
+   */
+  requireSignature?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Inscripciones a eventos y talleres
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations".
+ */
+export interface EventRegistration {
+  id: number;
+  event: number | Event;
+  fullName: string;
+  lastName?: string | null;
+  email: string;
+  phone?: string | null;
+  institution?: string | null;
+  rut?: string | null;
+  /**
+   * Respuestas a los campos dinámicos definidos en el evento
+   */
+  customFields?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Firma del participante (base64)
+   */
+  signature?: string | null;
+  status?: ('pending' | 'confirmed' | 'cancelled' | 'waitlist') | null;
+  /**
+   * Notas internas del administrador
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Registro de asistencia a eventos
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-attendance".
+ */
+export interface EventAttendance {
+  id: number;
+  event: number | Event;
+  registration: number | EventRegistration;
+  attended?: boolean | null;
+  checkInTime?: string | null;
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -973,6 +1073,10 @@ export interface PayloadLockedDocument {
         value: number | Category;
       } | null)
     | ({
+        relationTo: 'blog-subscribers';
+        value: number | BlogSubscriber;
+      } | null)
+    | ({
         relationTo: 'services';
         value: number | Service;
       } | null)
@@ -1003,6 +1107,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'events';
         value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'event-registrations';
+        value: number | EventRegistration;
+      } | null)
+    | ({
+        relationTo: 'event-attendance';
+        value: number | EventAttendance;
       } | null)
     | ({
         relationTo: 'resources';
@@ -1241,6 +1353,17 @@ export interface CategoriesSelect<T extends boolean = true> {
   description?: T;
   parent?: T;
   icon?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-subscribers_select".
+ */
+export interface BlogSubscribersSelect<T extends boolean = true> {
+  email?: T;
+  active?: T;
+  unsubscribeToken?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1534,6 +1657,50 @@ export interface EventsSelect<T extends boolean = true> {
       };
   featured?: T;
   status?: T;
+  calendarColor?: T;
+  registrationFields?:
+    | T
+    | {
+        fieldName?: T;
+        fieldType?: T;
+        required?: T;
+        options?: T;
+        id?: T;
+      };
+  enableDirectRegistration?: T;
+  requireSignature?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-registrations_select".
+ */
+export interface EventRegistrationsSelect<T extends boolean = true> {
+  event?: T;
+  fullName?: T;
+  lastName?: T;
+  email?: T;
+  phone?: T;
+  institution?: T;
+  rut?: T;
+  customFields?: T;
+  signature?: T;
+  status?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-attendance_select".
+ */
+export interface EventAttendanceSelect<T extends boolean = true> {
+  event?: T;
+  registration?: T;
+  attended?: T;
+  checkInTime?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

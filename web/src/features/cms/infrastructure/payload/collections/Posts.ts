@@ -13,6 +13,7 @@
 
 import type { CollectionConfig, Access, Where } from 'payload';
 import { isAuthenticated } from '../access/index.ts';
+import { sendEmail, buildNewPostEmailHtml } from '@/shared/utils/email';
 
 export const Posts: CollectionConfig = {
     slug: 'posts',
@@ -88,6 +89,85 @@ export const Posts: CollectionConfig = {
                 }
 
                 return data;
+            },
+        ],
+        afterChange: [
+            async ({ doc, previousDoc, req }) => {
+                // Solo enviar email cuando el estado cambia a "published"
+                const wasPublished = previousDoc?.status === 'published';
+                const isNowPublished = doc.status === 'published';
+
+                if (isNowPublished && !wasPublished) {
+                    // Enviar notificación en background (no bloquear la respuesta)
+                    (async () => {
+                        try {
+                            // Obtener todos los suscriptores activos
+                            const { docs: subscribers } = await req.payload.find({
+                                collection: 'blog-subscribers',
+                                where: { active: { equals: true } },
+                                limit: 10000,
+                                depth: 0,
+                            });
+
+                            if (subscribers.length === 0) {
+                                console.log('[Posts afterChange] No hay suscriptores activos');
+                                return;
+                            }
+
+                            // Construir URL del post
+                            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+                                || process.env.NEXT_PUBLIC_SERVER_URL
+                                || 'https://fablablosangeles.com';
+                            const postUrl = `${baseUrl}/blog/${doc.slug}`;
+
+                            // Imagen destacada
+                            let postImageUrl: string | undefined;
+                            if (doc.featuredImage) {
+                                const imgUrl = typeof doc.featuredImage === 'object'
+                                    ? doc.featuredImage.url
+                                    : null;
+                                if (imgUrl) {
+                                    postImageUrl = imgUrl.startsWith('http')
+                                        ? imgUrl
+                                        : `${baseUrl}${imgUrl}`;
+                                }
+                            }
+
+                            console.log(`[Posts afterChange] Enviando email a ${subscribers.length} suscriptores para: "${doc.title}"`);
+
+                            // Enviar emails uno por uno (para personalizar unsubscribe link)
+                            let sent = 0;
+                            let failed = 0;
+                            for (const sub of subscribers) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const subscriber = sub as any;
+                                const unsubscribeUrl = `${baseUrl}/api/blog/subscribe?unsubscribe=${subscriber.unsubscribeToken}`;
+
+                                const html = buildNewPostEmailHtml({
+                                    postTitle: doc.title,
+                                    postExcerpt: doc.excerpt,
+                                    postUrl,
+                                    postImageUrl,
+                                    unsubscribeUrl,
+                                });
+
+                                const result = await sendEmail({
+                                    to: subscriber.email,
+                                    subject: `📝 Nuevo en FabLab Blog: ${doc.title}`,
+                                    html,
+                                    text: `Nuevo artículo: ${doc.title}\n\n${doc.excerpt || ''}\n\nLeer: ${postUrl}\n\nDesuscribirse: ${unsubscribeUrl}`,
+                                });
+
+                                if (result.success) sent++;
+                                else failed++;
+                            }
+
+                            console.log(`[Posts afterChange] Emails enviados: ${sent} OK, ${failed} fallidos`);
+                        } catch (err) {
+                            console.error('[Posts afterChange] Error enviando notificaciones:', err);
+                        }
+                    })();
+                }
             },
         ],
     },
