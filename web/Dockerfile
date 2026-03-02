@@ -44,6 +44,10 @@ RUN addgroup --system --gid 1001 nextjs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+
+# Crear directorio media con permisos para nextjs (volumen persistente)
+RUN mkdir -p /app/media && chown nextjs:nextjs /app/media
+
 USER nextjs
 ENV NODE_ENV=production
 ENV PORT=3000

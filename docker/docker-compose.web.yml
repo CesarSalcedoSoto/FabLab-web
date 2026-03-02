@@ -32,7 +32,7 @@ services:
     ports:
       - "127.0.0.1:9011:3000"
     volumes:
-      - web-media:/app/public/media
+      - web-media:/app/media
 
 volumes:
   web-media:

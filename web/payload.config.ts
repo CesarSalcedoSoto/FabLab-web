@@ -56,7 +56,7 @@ export default buildConfig({
     pool: {
         connectionString: DATABASE_URL,
     },
-    push: true,  // Cambiar a true para que cree las tablas automáticamente
+    push: false,  // En producción NUNCA push:true (puede alterar esquema y romper relaciones)
 }),
 
     // Editor Lexical

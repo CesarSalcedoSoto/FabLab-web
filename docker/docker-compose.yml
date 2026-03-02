@@ -62,7 +62,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - web-media:/app/public/media
+      - web-media:/app/media
     networks:
       - fablab-network
 
