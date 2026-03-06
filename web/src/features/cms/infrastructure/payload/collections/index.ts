@@ -24,6 +24,7 @@ export { Services } from './Services.ts';
 export { Equipment } from './Equipment.ts';
 export { EquipmentRequests } from './EquipmentRequests.ts';
 export { EquipmentUsage } from './EquipmentUsage.ts';
+export { EquipmentReservations } from './EquipmentReservations.ts';
 
 // Inventario
 export { InventoryItems } from './InventoryItems.ts';
@@ -33,6 +34,9 @@ export { TeamMembers } from './TeamMembers.ts';
 
 // Proyectos
 export { Projects } from './Projects.ts';
+export { Technologies } from './Technologies.ts';
+export { Meetings } from './Meetings.ts';
+export { ProjectDocuments } from './ProjectDocuments.ts';
 
 // Eventos
 export { Events } from './Events.ts';
@@ -50,6 +54,10 @@ export { Testimonials } from './Testimonials.ts';
 // Contacto
 export { ContactMessages } from './ContactMessages.ts';
 
+// Reservas de Salas
+export { Rooms } from './Rooms.ts';
+export { RoomReservations } from './RoomReservations.ts';
+
 // Array para usar en payload.config.ts
 import { Users } from './Users.ts';
 import { Media } from './Media.ts';
@@ -60,9 +68,13 @@ import { Services } from './Services.ts';
 import { Equipment } from './Equipment.ts';
 import { EquipmentRequests } from './EquipmentRequests.ts';
 import { EquipmentUsage } from './EquipmentUsage.ts';
+import { EquipmentReservations } from './EquipmentReservations.ts';
 import { InventoryItems } from './InventoryItems.ts';
 import { TeamMembers } from './TeamMembers.ts';
 import { Projects } from './Projects.ts';
+import { Technologies } from './Technologies.ts';
+import { Meetings } from './Meetings.ts';
+import { ProjectDocuments } from './ProjectDocuments.ts';
 import { Events } from './Events.ts';
 import { EventRegistrations } from './EventRegistrations.ts';
 import { EventAttendance } from './EventAttendance.ts';
@@ -71,6 +83,8 @@ import { Gallery } from './Gallery.ts';
 import { FAQs } from './FAQs.ts';
 import { Testimonials } from './Testimonials.ts';
 import { ContactMessages } from './ContactMessages.ts';
+import { Rooms } from './Rooms.ts';
+import { RoomReservations } from './RoomReservations.ts';
 
 export const collections = [
     // Core
@@ -85,12 +99,16 @@ export const collections = [
     Equipment,
     EquipmentRequests,
     EquipmentUsage,
+    EquipmentReservations,
     // Inventario
     InventoryItems,
     // Equipo
     TeamMembers,
     // Proyectos
     Projects,
+    Technologies,
+    Meetings,
+    ProjectDocuments,
     // Eventos
     Events,
     EventRegistrations,
@@ -103,4 +121,7 @@ export const collections = [
     Testimonials,
     // Contacto
     ContactMessages,
+    // Reservas de Salas
+    Rooms,
+    RoomReservations,
 ];

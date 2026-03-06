@@ -19,6 +19,7 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
   const directivos = teamMembers.filter((m) => m.category === 'leadership' || (!m.category && m.esDirectivo));
+  const docentes = teamMembers.filter((m) => m.category === 'docente');
   const specialists = teamMembers.filter((m) => m.category === 'specialist' || (!m.category && !m.esDirectivo));
   const collaborators = teamMembers.filter((m) => m.category === 'collaborator');
 
@@ -85,6 +86,37 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
       </section>
 
       {/* Collaborators */}
+      {docentes.length > 0 && (
+        <section className="py-20 bg-white border-t border-gray-100">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-12">
+              <span className="inline-block px-4 py-2 bg-green-100 text-green-600 rounded-full text-sm font-semibold mb-4">
+                Docencia
+              </span>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Nuestros Docentes
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Profesores que forman a la próxima generación de makers.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {docentes.map((member, index) => (
+                <div key={member.id} className="h-80">
+                  <TeamMemberCard
+                    member={member}
+                    index={index}
+                    onSelect={setSelectedMember}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Other Collaborators */}
       {collaborators.length > 0 && (
         <section className="py-16 bg-white border-t border-gray-100">
           <div className="container mx-auto px-6">

@@ -5,8 +5,11 @@
  * 
  * @status
  * - available: Disponible para uso
+ * - in-use: En uso
  * - maintenance: En mantenimiento
  * - out-of-service: Fuera de servicio
+ * - inactive: Inactivo
+ * - borrowed: Prestado por otra área
  */
 
 import type { CollectionConfig } from 'payload';
@@ -38,6 +41,15 @@ export const Equipment: CollectionConfig = {
             label: 'Nombre del Equipo',
         },
         {
+            name: 'equipmentCode',
+            type: 'text',
+            unique: true,
+            label: 'Código de Equipo',
+            admin: {
+                description: 'Código único. Ej: FL-IMP3D-01, FL-LASER-02',
+            },
+        },
+        {
             name: 'slug',
             type: 'text',
             required: true,
@@ -55,10 +67,20 @@ export const Equipment: CollectionConfig = {
                 { label: 'CNC', value: 'cnc' },
                 { label: 'Electrónica', value: 'electronics' },
                 { label: 'Herramientas Manuales', value: 'hand-tools' },
+                { label: 'Herramientas Eléctricas', value: 'power-tools' },
                 { label: 'Escáner 3D', value: '3d-scanner' },
+                { label: 'Computación', value: 'computing' },
                 { label: 'Otro', value: 'other' },
             ],
             defaultValue: '3d-printer',
+        },
+        {
+            name: 'ownerArea',
+            type: 'text',
+            label: 'Área Propietaria',
+            admin: {
+                description: 'Área o departamento dueño del equipo. Ej: FabLab, Depto. Ingeniería',
+            },
         },
         {
             name: 'brand',
@@ -155,20 +177,43 @@ export const Equipment: CollectionConfig = {
             type: 'select',
             label: 'Estado',
             options: [
-                { label: 'Disponible', value: 'available' },
-                { label: 'En Mantenimiento', value: 'maintenance' },
+                { label: 'Activo', value: 'available' },
+                { label: 'En Uso', value: 'in-use' },
+                { label: 'En Mantención', value: 'maintenance' },
+                { label: 'Inactivo', value: 'inactive' },
                 { label: 'Fuera de Servicio', value: 'out-of-service' },
+                { label: 'Prestado por otra área', value: 'borrowed' },
             ],
             defaultValue: 'available',
             admin: { position: 'sidebar' },
         },
         {
-            name: 'location',
-            type: 'text',
-            label: 'Ubicación',
+            name: 'technicalResponsible',
+            type: 'relationship',
+            relationTo: 'users',
+            label: 'Responsable Técnico',
             admin: {
                 position: 'sidebar',
-                description: 'Ej: "Sala 1", "Taller Principal"',
+                description: 'Usuario responsable del mantenimiento de este equipo',
+            },
+        },
+        {
+            name: 'lastReviewDate',
+            type: 'date',
+            label: 'Fecha Última Revisión',
+            admin: {
+                position: 'sidebar',
+                date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' },
+            },
+        },
+        {
+            name: 'location',
+            type: 'relationship',
+            relationTo: 'rooms' as any,
+            label: 'Ubicación (Sala)',
+            admin: {
+                position: 'sidebar',
+                description: 'Sala o espacio donde se encuentra el equipo',
             },
         },
         {
@@ -194,6 +239,124 @@ export const Equipment: CollectionConfig = {
             label: 'Orden',
             defaultValue: 0,
             admin: { position: 'sidebar' },
+        },
+        // ── Historial de Mantenciones ──
+        {
+            name: 'maintenanceHistory',
+            type: 'array',
+            label: 'Historial de Mantenciones',
+            admin: {
+                description: 'Registro de todas las mantenciones realizadas',
+            },
+            fields: [
+                {
+                    name: 'date',
+                    type: 'date',
+                    required: true,
+                    label: 'Fecha',
+                    admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' } },
+                },
+                {
+                    name: 'maintenanceType',
+                    type: 'select',
+                    required: true,
+                    label: 'Tipo',
+                    options: [
+                        { label: 'Preventiva', value: 'preventive' },
+                        { label: 'Correctiva', value: 'corrective' },
+                        { label: 'Calibración', value: 'calibration' },
+                        { label: 'Limpieza', value: 'cleaning' },
+                        { label: 'Actualización', value: 'upgrade' },
+                    ],
+                },
+                {
+                    name: 'description',
+                    type: 'textarea',
+                    required: true,
+                    label: 'Descripción del Trabajo',
+                },
+                {
+                    name: 'performedBy',
+                    type: 'text',
+                    label: 'Realizado por',
+                },
+                {
+                    name: 'cost',
+                    type: 'number',
+                    label: 'Costo ($)',
+                    min: 0,
+                },
+                {
+                    name: 'nextMaintenanceDate',
+                    type: 'date',
+                    label: 'Próxima Mantención',
+                    admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' } },
+                },
+            ],
+        },
+        // ── Registro de Fallas ──
+        {
+            name: 'failureHistory',
+            type: 'array',
+            label: 'Registro de Fallas',
+            admin: {
+                description: 'Historial de fallas y problemas reportados',
+            },
+            fields: [
+                {
+                    name: 'date',
+                    type: 'date',
+                    required: true,
+                    label: 'Fecha de Falla',
+                    admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' } },
+                },
+                {
+                    name: 'severity',
+                    type: 'select',
+                    required: true,
+                    label: 'Severidad',
+                    options: [
+                        { label: 'Baja', value: 'low' },
+                        { label: 'Media', value: 'medium' },
+                        { label: 'Alta', value: 'high' },
+                        { label: 'Crítica', value: 'critical' },
+                    ],
+                },
+                {
+                    name: 'description',
+                    type: 'textarea',
+                    required: true,
+                    label: 'Descripción de la Falla',
+                },
+                {
+                    name: 'reportedBy',
+                    type: 'text',
+                    label: 'Reportado por',
+                },
+                {
+                    name: 'resolved',
+                    type: 'checkbox',
+                    label: 'Resuelta',
+                    defaultValue: false,
+                },
+                {
+                    name: 'resolution',
+                    type: 'textarea',
+                    label: 'Descripción de la Solución',
+                    admin: {
+                        condition: (_, siblingData) => siblingData?.resolved,
+                    },
+                },
+                {
+                    name: 'resolvedDate',
+                    type: 'date',
+                    label: 'Fecha de Resolución',
+                    admin: {
+                        condition: (_, siblingData) => siblingData?.resolved,
+                        date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' },
+                    },
+                },
+            ],
         },
     ],
     hooks: {

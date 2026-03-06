@@ -7,10 +7,27 @@
  * - admin: Acceso completo al sistema
  * - editor: Puede crear y editar contenido
  * - author: Solo puede crear contenido propio
+ * 
+ * @specialist_fields (visibles cuando showInTeam=true)
+ * - personalSkills: Habilidades personales (etiquetas)
+ * - technicalDomain: Dominio técnico (etiquetas)
+ * - availabilityMode: Presencial/Remoto/Híbrido
+ * - weeklySchedule: Calendario semanal con rangos horarios
+ * - docenteResponsable: Referencia al docente responsable
  */
 
 import type { CollectionConfig } from 'payload';
 import { isAdmin, isAdminOrSelf } from '../access/index.ts';
+
+const DAYS_OF_WEEK = [
+    { label: 'Lunes', value: 'monday' },
+    { label: 'Martes', value: 'tuesday' },
+    { label: 'Miércoles', value: 'wednesday' },
+    { label: 'Jueves', value: 'thursday' },
+    { label: 'Viernes', value: 'friday' },
+    { label: 'Sábado', value: 'saturday' },
+    { label: 'Domingo', value: 'sunday' },
+];
 
 export const Users: CollectionConfig = {
     slug: 'users',
@@ -63,7 +80,7 @@ export const Users: CollectionConfig = {
             label: 'Biografía',
         },
         {
-            name: 'jobTitle', // Campo simple para mostrar en admin/otros lados
+            name: 'jobTitle',
             type: 'text',
             label: 'Cargo / Especialidad',
             admin: {
@@ -85,11 +102,22 @@ export const Users: CollectionConfig = {
                 { label: 'Equipo Directivo', value: 'leadership' },
                 { label: 'Especialista', value: 'specialist' },
                 { label: 'Colaborador', value: 'collaborator' },
+                { label: 'Docente Responsable', value: 'docente' },
             ],
             defaultValue: 'specialist',
             admin: {
                 condition: (data) => Boolean(data?.showInTeam),
             }
+        },
+        {
+            name: 'docenteResponsable',
+            type: 'relationship',
+            relationTo: 'users',
+            label: 'Docente Responsable',
+            admin: {
+                description: 'Docente que supervisa a este especialista',
+                condition: (data) => Boolean(data?.showInTeam) && data?.category !== 'docente',
+            },
         },
         {
             name: 'experience',
@@ -116,6 +144,99 @@ export const Users: CollectionConfig = {
                 condition: (data) => Boolean(data?.showInTeam),
             }
         },
+        // --- Habilidades y Dominio Técnico ---
+        {
+            name: 'personalSkills',
+            type: 'array',
+            label: 'Habilidades Personales',
+            admin: {
+                description: 'Ej: Trabajo en equipo, Liderazgo, Comunicación',
+                condition: (data) => Boolean(data?.showInTeam),
+            },
+            fields: [
+                { name: 'skill', type: 'text', required: true, label: 'Habilidad' },
+            ],
+        },
+        {
+            name: 'technicalDomain',
+            type: 'array',
+            label: 'Dominio Técnico',
+            admin: {
+                description: 'Ej: Impresión 3D, Arduino, Diseño CAD, Animación',
+                condition: (data) => Boolean(data?.showInTeam),
+            },
+            fields: [
+                { name: 'skill', type: 'text', required: true, label: 'Tecnología / Dominio' },
+            ],
+        },
+        // --- Disponibilidad ---
+        {
+            name: 'availabilityMode',
+            type: 'select',
+            label: 'Modalidad de Disponibilidad',
+            options: [
+                { label: 'Presencial', value: 'presencial' },
+                { label: 'Remoto', value: 'remoto' },
+                { label: 'Híbrido', value: 'hibrido' },
+            ],
+            admin: {
+                condition: (data) => Boolean(data?.showInTeam),
+            }
+        },
+        // --- Calendario Semanal ---
+        {
+            name: 'weeklySchedule',
+            type: 'array',
+            label: 'Horario Semanal',
+            admin: {
+                description: 'Define la disponibilidad por día de la semana',
+                condition: (data) => Boolean(data?.showInTeam),
+            },
+            fields: [
+                {
+                    name: 'day',
+                    type: 'select',
+                    required: true,
+                    label: 'Día',
+                    options: DAYS_OF_WEEK,
+                },
+                {
+                    name: 'active',
+                    type: 'checkbox',
+                    label: 'Disponible este día',
+                    defaultValue: true,
+                },
+                {
+                    name: 'timeRanges',
+                    type: 'array',
+                    label: 'Rangos Horarios',
+                    admin: {
+                        condition: (_, siblingData) => Boolean(siblingData?.active),
+                    },
+                    fields: [
+                        {
+                            name: 'startTime',
+                            type: 'text',
+                            required: true,
+                            label: 'Hora Inicio (HH:MM)',
+                            admin: {
+                                description: 'Formato 24h. Ej: 09:00',
+                            },
+                        },
+                        {
+                            name: 'endTime',
+                            type: 'text',
+                            required: true,
+                            label: 'Hora Fin (HH:MM)',
+                            admin: {
+                                description: 'Formato 24h. Ej: 17:00',
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+        // --- Fin campos especialista ---
         {
             name: 'achievements',
             type: 'array',

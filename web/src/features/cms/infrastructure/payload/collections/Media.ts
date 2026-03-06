@@ -126,7 +126,43 @@ export const Media: CollectionConfig = {
             },
         ],
         adminThumbnail: 'thumbnail',
-        mimeTypes: ['image/*', 'application/pdf'],
+        mimeTypes: [
+            'image/*',
+            'application/pdf',
+            // Documentos Office
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            // Archivos comprimidos
+            'application/zip',
+            'application/x-zip-compressed',
+            'application/x-rar-compressed',
+            'application/x-7z-compressed',
+            'application/gzip',
+            'application/x-tar',
+            // 3D / CAD / Fabricación
+            'model/stl',
+            'application/sla',
+            'application/vnd.ms-pki.stl',
+            'application/octet-stream',
+            'model/gltf-binary',
+            'model/gltf+json',
+            'model/obj',
+            // Texto / código
+            'text/plain',
+            'text/csv',
+            'text/markdown',
+            'application/json',
+            'application/xml',
+            'text/xml',
+            // Otros
+            'application/x-iso9660-image',
+            'video/*',
+            'audio/*',
+        ],
     },
     fields: [
         {

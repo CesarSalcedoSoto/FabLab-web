@@ -4,10 +4,10 @@
 
 export function getCategoryStyles(categoria: string): string {
     const styles: Record<string, string> = {
-        Hardware: "bg-blue-500 text-white",
-        Software: "bg-purple-500 text-white",
-        Diseño: "bg-pink-500 text-white",
-        IoT: "bg-green-500 text-white",
+        'proyectos-fisicos': "bg-blue-500 text-white",
+        'proyectos-digitales': "bg-purple-500 text-white",
+        'diseno': "bg-pink-500 text-white",
+        'animacion': "bg-green-500 text-white",
     };
     return styles[categoria] || "bg-gray-500 text-white";
 }

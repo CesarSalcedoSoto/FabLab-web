@@ -186,16 +186,25 @@ export function GalleryPageClient() {
             </button>
             <motion.div
               initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              className="max-w-5xl max-h-[90vh] relative"
+              className="max-w-5xl w-full max-h-[90vh] relative flex flex-col items-center"
               onClick={e => e.stopPropagation()}
             >
               {lightbox.image?.url && (
-                <Image
-                  src={lightbox.image.url} alt={lightbox.title}
-                  width={lightbox.image.width || 1200} height={lightbox.image.height || 800}
-                  className="max-h-[80vh] w-auto object-contain rounded-lg"
-                  sizes="90vw"
-                />
+                <div
+                  className="relative w-full"
+                  style={{
+                    maxHeight: '80vh',
+                    aspectRatio: `${lightbox.image.width || 1200} / ${lightbox.image.height || 800}`,
+                  }}
+                >
+                  <Image
+                    src={lightbox.image.url} alt={lightbox.title}
+                    fill
+                    className="object-contain rounded-lg"
+                    sizes="90vw"
+                    priority
+                  />
+                </div>
               )}
               <div className="mt-4 text-center text-white">
                 <h3 className="text-lg font-semibold">{lightbox.title}</h3>

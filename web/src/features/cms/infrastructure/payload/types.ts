@@ -76,9 +76,13 @@ export interface Config {
     equipment: Equipment;
     'equipment-requests': EquipmentRequest;
     'equipment-usage': EquipmentUsage;
+    'equipment-reservations': EquipmentReservation;
     'inventory-items': InventoryItem;
     'team-members': TeamMember;
     projects: Project;
+    technologies: Technology;
+    meetings: Meeting;
+    'project-documents': ProjectDocument;
     events: Event;
     'event-registrations': EventRegistration;
     'event-attendance': EventAttendance;
@@ -87,6 +91,8 @@ export interface Config {
     faqs: Faq;
     testimonials: Testimonial;
     'contact-messages': ContactMessage;
+    rooms: Room;
+    'room-reservations': RoomReservation;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -103,9 +109,13 @@ export interface Config {
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     'equipment-requests': EquipmentRequestsSelect<false> | EquipmentRequestsSelect<true>;
     'equipment-usage': EquipmentUsageSelect<false> | EquipmentUsageSelect<true>;
+    'equipment-reservations': EquipmentReservationsSelect<false> | EquipmentReservationsSelect<true>;
     'inventory-items': InventoryItemsSelect<false> | InventoryItemsSelect<true>;
     'team-members': TeamMembersSelect<false> | TeamMembersSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    technologies: TechnologiesSelect<false> | TechnologiesSelect<true>;
+    meetings: MeetingsSelect<false> | MeetingsSelect<true>;
+    'project-documents': ProjectDocumentsSelect<false> | ProjectDocumentsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
     'event-registrations': EventRegistrationsSelect<false> | EventRegistrationsSelect<true>;
     'event-attendance': EventAttendanceSelect<false> | EventAttendanceSelect<true>;
@@ -114,6 +124,8 @@ export interface Config {
     faqs: FaqsSelect<false> | FaqsSelect<true>;
     testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    rooms: RoomsSelect<false> | RoomsSelect<true>;
+    'room-reservations': RoomReservationsSelect<false> | RoomReservationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -178,9 +190,55 @@ export interface User {
    */
   jobTitle?: string | null;
   showInTeam?: boolean | null;
-  category?: ('leadership' | 'specialist' | 'collaborator') | null;
+  category?: ('leadership' | 'specialist' | 'collaborator' | 'docente') | null;
+  /**
+   * Docente que supervisa a este especialista
+   */
+  docenteResponsable?: (number | null) | User;
   experience?: string | null;
   educationStatus?: ('graduated' | 'studying' | 'titled' | 'bachelor' | 'masters' | 'doctorate') | null;
+  /**
+   * Ej: Trabajo en equipo, Liderazgo, Comunicación
+   */
+  personalSkills?:
+    | {
+        skill: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Ej: Impresión 3D, Arduino, Diseño CAD, Animación
+   */
+  technicalDomain?:
+    | {
+        skill: string;
+        id?: string | null;
+      }[]
+    | null;
+  availabilityMode?: ('presencial' | 'remoto' | 'hibrido') | null;
+  /**
+   * Define la disponibilidad por día de la semana
+   */
+  weeklySchedule?:
+    | {
+        day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+        active?: boolean | null;
+        timeRanges?:
+          | {
+              /**
+               * Formato 24h. Ej: 09:00
+               */
+              startTime: string;
+              /**
+               * Formato 24h. Ej: 17:00
+               */
+              endTime: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   achievements?:
     | {
         achievement?: string | null;
@@ -458,8 +516,25 @@ export interface Service {
 export interface Equipment {
   id: number;
   name: string;
+  /**
+   * Código único. Ej: FL-IMP3D-01, FL-LASER-02
+   */
+  equipmentCode?: string | null;
   slug: string;
-  category: '3d-printer' | 'laser-cutter' | 'cnc' | 'electronics' | 'hand-tools' | '3d-scanner' | 'other';
+  category:
+    | '3d-printer'
+    | 'laser-cutter'
+    | 'cnc'
+    | 'electronics'
+    | 'hand-tools'
+    | 'power-tools'
+    | '3d-scanner'
+    | 'computing'
+    | 'other';
+  /**
+   * Área o departamento dueño del equipo. Ej: FabLab, Depto. Ingeniería
+   */
+  ownerArea?: string | null;
   brand?: string | null;
   model?: string | null;
   description: string;
@@ -491,17 +566,83 @@ export interface Equipment {
         id?: string | null;
       }[]
     | null;
-  status?: ('available' | 'maintenance' | 'out-of-service') | null;
+  status?: ('available' | 'in-use' | 'maintenance' | 'inactive' | 'out-of-service' | 'borrowed') | null;
   /**
-   * Ej: "Sala 1", "Taller Principal"
+   * Usuario responsable del mantenimiento de este equipo
    */
-  location?: string | null;
+  technicalResponsible?: (number | null) | User;
+  lastReviewDate?: string | null;
+  /**
+   * Sala o espacio donde se encuentra el equipo
+   */
+  location?: (number | null) | Room;
   requiresTraining?: boolean | null;
   /**
    * Si está activado, el equipo será visible en la página /tecnologías
    */
   showInTecnologias?: boolean | null;
   order?: number | null;
+  /**
+   * Registro de todas las mantenciones realizadas
+   */
+  maintenanceHistory?:
+    | {
+        date: string;
+        maintenanceType: 'preventive' | 'corrective' | 'calibration' | 'cleaning' | 'upgrade';
+        description: string;
+        performedBy?: string | null;
+        cost?: number | null;
+        nextMaintenanceDate?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Historial de fallas y problemas reportados
+   */
+  failureHistory?:
+    | {
+        date: string;
+        severity: 'low' | 'medium' | 'high' | 'critical';
+        description: string;
+        reportedBy?: string | null;
+        resolved?: boolean | null;
+        resolution?: string | null;
+        resolvedDate?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Salas y espacios reservables del FabLab
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rooms".
+ */
+export interface Room {
+  id: number;
+  name: string;
+  /**
+   * Ej: "Edificio Principal, Piso 2"
+   */
+  location?: string | null;
+  capacity: number;
+  description?: string | null;
+  amenities?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  equipment?:
+    | {
+        name: string;
+        category: 'consumable' | 'material' | 'component' | 'tool' | 'supply' | 'other';
+        quantity: number;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -548,6 +689,47 @@ export interface EquipmentUsage {
   createdAt: string;
 }
 /**
+ * Reservas de equipos del FabLab
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipment-reservations".
+ */
+export interface EquipmentReservation {
+  id: number;
+  /**
+   * ID del equipo en la colección equipment
+   */
+  equipmentId: string;
+  /**
+   * Nombre del equipo al momento de reservar (para historial)
+   */
+  equipmentName: string;
+  user: number | User;
+  /**
+   * Nombre del usuario al momento de reservar (para historial)
+   */
+  userName?: string | null;
+  /**
+   * Formato: 2026-03-10
+   */
+  date: string;
+  /**
+   * Formato 24h: 09:00
+   */
+  startTime: string;
+  /**
+   * Formato 24h: 11:00
+   */
+  endTime: string;
+  /**
+   * Descripción obligatoria del uso planificado del equipo
+   */
+  description: string;
+  status: 'pending' | 'active' | 'completed' | 'cancelled';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Gestiona el inventario interno (consumibles, materiales, componentes)
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -570,9 +752,9 @@ export interface InventoryItem {
    */
   minimumStock?: number | null;
   /**
-   * Ej: "Bodega A", "Estante 3"
+   * Sala o espacio donde se encuentra este artículo
    */
-  location?: string | null;
+  location?: (number | null) | Room;
   supplier?: string | null;
   unitCost?: number | null;
   status?: ('available' | 'low-stock' | 'out-of-stock') | null;
@@ -621,7 +803,7 @@ export interface Project {
   id: number;
   title: string;
   slug: string;
-  category: 'Hardware' | 'Software' | 'Diseño' | 'IoT';
+  category: 'proyectos-fisicos' | 'proyectos-digitales' | 'diseno' | 'animacion';
   description: string;
   content?: {
     root: {
@@ -645,12 +827,26 @@ export interface Project {
         id?: string | null;
       }[]
     | null;
+  startDate?: string | null;
   /**
-   * Herramientas, lenguajes, materiales utilizados
+   * Debe ser posterior a la fecha de inicio
    */
-  technologies?:
+  endDate?: string | null;
+  /**
+   * Selecciona tecnologías del catálogo. Admin puede crear nuevas inline.
+   */
+  technologies?: (number | Technology)[] | null;
+  /**
+   * Usuarios registrados que pueden editar este proyecto y sus reuniones
+   */
+  responsibleStaff?: (number | User)[] | null;
+  /**
+   * Personas no registradas en el sistema que participan como responsables
+   */
+  externalStaff?:
     | {
         name: string;
+        role?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -675,6 +871,22 @@ export interface Project {
     | {
         label: string;
         url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Beneficiarios del proyecto (siempre visible)
+   */
+  beneficiaries?:
+    | {
+        tipoBeneficiario: string;
+        rut: string;
+        firstName: string;
+        paternalLastName: string;
+        maternalLastName?: string | null;
+        rol: string;
+        horasDocente?: number | null;
+        horasEstudiante?: number | null;
         id?: string | null;
       }[]
     | null;
@@ -726,6 +938,78 @@ export interface Project {
   featured?: boolean | null;
   status?: ('draft' | 'published') | null;
   order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Catálogo de tecnologías para asignar a proyectos
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "technologies".
+ */
+export interface Technology {
+  id: number;
+  /**
+   * Ej: Arduino, React, Impresión 3D, Fusion 360
+   */
+  name: string;
+  category?: ('hardware' | 'software' | 'design' | 'fabrication' | 'other') | null;
+  /**
+   * Nombre del ícono de Lucide o URL
+   */
+  icon?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Reuniones asociadas a proyectos
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "meetings".
+ */
+export interface Meeting {
+  id: number;
+  project: number | Project;
+  date: string;
+  /**
+   * Formato 24h. Ej: 14:30
+   */
+  time: string;
+  description: string;
+  status: 'programada' | 'cancelada' | 'realizada';
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Documentos técnicos, manuales, informes, actas y evaluaciones TRL
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "project-documents".
+ */
+export interface ProjectDocument {
+  id: number;
+  title: string;
+  /**
+   * Proyecto al que pertenece este documento
+   */
+  project: number | Project;
+  documentType: 'technical' | 'manual' | 'report' | 'minutes' | 'trl-evaluation' | 'other';
+  description?: string | null;
+  file: number | Media;
+  /**
+   * Ej: 1.0, 1.1, 2.0
+   */
+  version?: string | null;
+  /**
+   * Detalle los cambios en esta versión
+   */
+  versionNotes?: string | null;
+  /**
+   * Enlace al documento previo para mantener historial
+   */
+  previousVersion?: (number | null) | ProjectDocument;
+  uploadedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -1033,6 +1317,46 @@ export interface ContactMessage {
   createdAt: string;
 }
 /**
+ * Reservas de salas y espacios del FabLab
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "room-reservations".
+ */
+export interface RoomReservation {
+  id: number;
+  room: number | Room;
+  /**
+   * Nombre de la sala al momento de reservar (para historial)
+   */
+  roomName?: string | null;
+  user: number | User;
+  /**
+   * Nombre del usuario al momento de reservar (para historial)
+   */
+  userName?: string | null;
+  /**
+   * Formato: 2026-03-10
+   */
+  date: string;
+  /**
+   * Formato 24h: 09:00
+   */
+  startTime: string;
+  /**
+   * Formato 24h: 11:00
+   */
+  endTime: string;
+  purpose: string;
+  companions?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1093,6 +1417,10 @@ export interface PayloadLockedDocument {
         value: number | EquipmentUsage;
       } | null)
     | ({
+        relationTo: 'equipment-reservations';
+        value: number | EquipmentReservation;
+      } | null)
+    | ({
         relationTo: 'inventory-items';
         value: number | InventoryItem;
       } | null)
@@ -1103,6 +1431,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'projects';
         value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'technologies';
+        value: number | Technology;
+      } | null)
+    | ({
+        relationTo: 'meetings';
+        value: number | Meeting;
+      } | null)
+    | ({
+        relationTo: 'project-documents';
+        value: number | ProjectDocument;
       } | null)
     | ({
         relationTo: 'events';
@@ -1135,6 +1475,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'contact-messages';
         value: number | ContactMessage;
+      } | null)
+    | ({
+        relationTo: 'rooms';
+        value: number | Room;
+      } | null)
+    | ({
+        relationTo: 'room-reservations';
+        value: number | RoomReservation;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1190,8 +1538,36 @@ export interface UsersSelect<T extends boolean = true> {
   jobTitle?: T;
   showInTeam?: T;
   category?: T;
+  docenteResponsable?: T;
   experience?: T;
   educationStatus?: T;
+  personalSkills?:
+    | T
+    | {
+        skill?: T;
+        id?: T;
+      };
+  technicalDomain?:
+    | T
+    | {
+        skill?: T;
+        id?: T;
+      };
+  availabilityMode?: T;
+  weeklySchedule?:
+    | T
+    | {
+        day?: T;
+        active?: T;
+        timeRanges?:
+          | T
+          | {
+              startTime?: T;
+              endTime?: T;
+              id?: T;
+            };
+        id?: T;
+      };
   achievements?:
     | T
     | {
@@ -1412,8 +1788,10 @@ export interface ServicesSelect<T extends boolean = true> {
  */
 export interface EquipmentSelect<T extends boolean = true> {
   name?: T;
+  equipmentCode?: T;
   slug?: T;
   category?: T;
+  ownerArea?: T;
   brand?: T;
   model?: T;
   description?: T;
@@ -1446,10 +1824,35 @@ export interface EquipmentSelect<T extends boolean = true> {
         id?: T;
       };
   status?: T;
+  technicalResponsible?: T;
+  lastReviewDate?: T;
   location?: T;
   requiresTraining?: T;
   showInTecnologias?: T;
   order?: T;
+  maintenanceHistory?:
+    | T
+    | {
+        date?: T;
+        maintenanceType?: T;
+        description?: T;
+        performedBy?: T;
+        cost?: T;
+        nextMaintenanceDate?: T;
+        id?: T;
+      };
+  failureHistory?:
+    | T
+    | {
+        date?: T;
+        severity?: T;
+        description?: T;
+        reportedBy?: T;
+        resolved?: T;
+        resolution?: T;
+        resolvedDate?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1481,6 +1884,23 @@ export interface EquipmentUsageSelect<T extends boolean = true> {
   startTime?: T;
   endTime?: T;
   estimatedDuration?: T;
+  description?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipment-reservations_select".
+ */
+export interface EquipmentReservationsSelect<T extends boolean = true> {
+  equipmentId?: T;
+  equipmentName?: T;
+  user?: T;
+  userName?: T;
+  date?: T;
+  startTime?: T;
+  endTime?: T;
   description?: T;
   status?: T;
   updatedAt?: T;
@@ -1555,10 +1975,15 @@ export interface ProjectsSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
-  technologies?:
+  startDate?: T;
+  endDate?: T;
+  technologies?: T;
+  responsibleStaff?: T;
+  externalStaff?:
     | T
     | {
         name?: T;
+        role?: T;
         id?: T;
       };
   creators?:
@@ -1574,6 +1999,19 @@ export interface ProjectsSelect<T extends boolean = true> {
     | {
         label?: T;
         url?: T;
+        id?: T;
+      };
+  beneficiaries?:
+    | T
+    | {
+        tipoBeneficiario?: T;
+        rut?: T;
+        firstName?: T;
+        paternalLastName?: T;
+        maternalLastName?: T;
+        rol?: T;
+        horasDocente?: T;
+        horasEstudiante?: T;
         id?: T;
       };
   practiceHoursEnabled?: T;
@@ -1614,6 +2052,48 @@ export interface ProjectsSelect<T extends boolean = true> {
   featured?: T;
   status?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "technologies_select".
+ */
+export interface TechnologiesSelect<T extends boolean = true> {
+  name?: T;
+  category?: T;
+  icon?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "meetings_select".
+ */
+export interface MeetingsSelect<T extends boolean = true> {
+  project?: T;
+  date?: T;
+  time?: T;
+  description?: T;
+  status?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "project-documents_select".
+ */
+export interface ProjectDocumentsSelect<T extends boolean = true> {
+  title?: T;
+  project?: T;
+  documentType?: T;
+  description?: T;
+  file?: T;
+  version?: T;
+  versionNotes?: T;
+  previousVersion?: T;
+  uploadedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1793,6 +2273,54 @@ export interface ContactMessagesSelect<T extends boolean = true> {
   estado?: T;
   respuesta?: T;
   fechaRespuesta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rooms_select".
+ */
+export interface RoomsSelect<T extends boolean = true> {
+  name?: T;
+  location?: T;
+  capacity?: T;
+  description?: T;
+  amenities?:
+    | T
+    | {
+        value?: T;
+        id?: T;
+      };
+  equipment?:
+    | T
+    | {
+        name?: T;
+        category?: T;
+        quantity?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "room-reservations_select".
+ */
+export interface RoomReservationsSelect<T extends boolean = true> {
+  room?: T;
+  roomName?: T;
+  user?: T;
+  userName?: T;
+  date?: T;
+  startTime?: T;
+  endTime?: T;
+  purpose?: T;
+  companions?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

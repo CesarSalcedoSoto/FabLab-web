@@ -71,6 +71,7 @@ import {
     exportInventoryToExcel,
     getInventoryExcelTemplate,
     importInventoryFromExcel,
+    getRoomsForSelect,
 } from "./actions";
 import {
     EQUIPMENT_CATEGORIES,
@@ -79,7 +80,7 @@ import {
     INVENTORY_UNITS,
     INVENTORY_STATUS,
 } from "./data";
-import type { EquipmentData, InventoryItemData } from "./data";
+import type { EquipmentData, InventoryItemData, RoomOption } from "./data";
 
 // ═══════════════════════════════════════════
 // ── PAGE COMPONENT ────────────────────────
@@ -99,6 +100,9 @@ export default function InventoryItemsPage() {
     const [isEquipDialogOpen, setIsEquipDialogOpen] = useState(false);
     const [isEditEquipDialogOpen, setIsEditEquipDialogOpen] = useState(false);
     const [selectedEquipment, setSelectedEquipment] = useState<EquipmentData | null>(null);
+
+    // Rooms for location selector
+    const [roomsList, setRoomsList] = useState<RoomOption[]>([]);
 
     // Usage registration state
     const [isUsageDialogOpen, setIsUsageDialogOpen] = useState(false);
@@ -127,7 +131,8 @@ export default function InventoryItemsPage() {
 
     // ── Equipment form state ──
     const [equipForm, setEquipForm] = useState({
-        name: "", category: "3d-printer", brand: "", model: "",
+        name: "", equipmentCode: "", category: "3d-printer", ownerArea: "",
+        brand: "", model: "",
         description: "", status: "available", location: "",
         requiresTraining: false, showInTecnologias: true,
         specifications: [] as { label: string; value: string }[],
@@ -153,12 +158,14 @@ export default function InventoryItemsPage() {
     const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [equip, inv] = await Promise.all([
+            const [equip, inv, rooms] = await Promise.all([
                 getEquipment(),
                 getInventoryItems(),
+                getRoomsForSelect(),
             ]);
             setEquipmentList(equip);
             setInventoryList(inv);
+            setRoomsList(rooms);
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error al cargar datos");
@@ -184,7 +191,8 @@ export default function InventoryItemsPage() {
     const filteredEquipment = equipmentList.filter(e => {
         const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             e.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            e.model.toLowerCase().includes(searchQuery.toLowerCase());
+            e.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            e.equipmentCode.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = equipCategoryFilter === "all" || e.category === equipCategoryFilter;
         return matchesSearch && matchesCategory;
     });
@@ -216,7 +224,8 @@ export default function InventoryItemsPage() {
 
     const resetEquipForm = () => {
         setEquipForm({
-            name: "", category: "3d-printer", brand: "", model: "",
+            name: "", equipmentCode: "", category: "3d-printer", ownerArea: "",
+            brand: "", model: "",
             description: "", status: "available", location: "",
             requiresTraining: false, showInTecnologias: true,
             specifications: [], materials: [], image: null,
@@ -238,11 +247,13 @@ export default function InventoryItemsPage() {
     };
 
     const addSpecification = () => {
-        if (newSpecLabel && newSpecValue) {
-            setEquipForm({
-                ...equipForm,
-                specifications: [...equipForm.specifications, { label: newSpecLabel, value: newSpecValue }],
-            });
+        const label = newSpecLabel.trim();
+        const value = newSpecValue.trim();
+        if (label && value) {
+            setEquipForm(prev => ({
+                ...prev,
+                specifications: [...prev.specifications, { label, value }],
+            }));
             setNewSpecLabel("");
             setNewSpecValue("");
         }
@@ -256,10 +267,15 @@ export default function InventoryItemsPage() {
     };
 
     const addMaterial = () => {
-        if (newMaterial && !equipForm.materials.includes(newMaterial)) {
-            setEquipForm({ ...equipForm, materials: [...equipForm.materials, newMaterial] });
-            setNewMaterial("");
-        }
+        const material = newMaterial.trim();
+        if (!material) return;
+
+        setEquipForm(prev => {
+            const alreadyExists = prev.materials.some(m => m.toLowerCase() === material.toLowerCase());
+            if (alreadyExists) return prev;
+            return { ...prev, materials: [...prev.materials, material] };
+        });
+        setNewMaterial("");
     };
 
     const removeMaterial = (mat: string) => {
@@ -271,18 +287,37 @@ export default function InventoryItemsPage() {
     // ═══════════════════════════════════════
 
     const buildEquipFormData = () => {
+        const pendingSpecLabel = newSpecLabel.trim();
+        const pendingSpecValue = newSpecValue.trim();
+        const pendingMaterial = newMaterial.trim();
+
+        const mergedSpecifications =
+            pendingSpecLabel && pendingSpecValue
+                ? [...equipForm.specifications, { label: pendingSpecLabel, value: pendingSpecValue }]
+                : equipForm.specifications;
+
+        const materialExists = equipForm.materials.some(
+            m => m.toLowerCase() === pendingMaterial.toLowerCase()
+        );
+        const mergedMaterials =
+            pendingMaterial && !materialExists
+                ? [...equipForm.materials, pendingMaterial]
+                : equipForm.materials;
+
         const form = new FormData();
         form.append("name", equipForm.name);
+        form.append("equipmentCode", equipForm.equipmentCode);
         form.append("category", equipForm.category);
+        form.append("ownerArea", equipForm.ownerArea);
         form.append("brand", equipForm.brand);
         form.append("model", equipForm.model);
         form.append("description", equipForm.description);
         form.append("status", equipForm.status);
-        form.append("location", equipForm.location);
+        if (equipForm.location && equipForm.location !== "none") form.append("location", equipForm.location);
         form.append("requiresTraining", String(equipForm.requiresTraining));
         form.append("showInTecnologias", String(equipForm.showInTecnologias));
-        form.append("specifications", JSON.stringify(equipForm.specifications));
-        form.append("materials", JSON.stringify(equipForm.materials));
+        form.append("specifications", JSON.stringify(mergedSpecifications));
+        form.append("materials", JSON.stringify(mergedMaterials));
         if (equipForm.image) form.append("image", equipForm.image);
         return form;
     };
@@ -346,8 +381,9 @@ export default function InventoryItemsPage() {
     const openEditEquipment = (eq: EquipmentData) => {
         setSelectedEquipment(eq);
         setEquipForm({
-            name: eq.name, category: eq.category, brand: eq.brand, model: eq.model,
-            description: eq.description, status: eq.status, location: eq.location,
+            name: eq.name, equipmentCode: eq.equipmentCode, category: eq.category,
+            ownerArea: eq.ownerArea, brand: eq.brand, model: eq.model,
+            description: eq.description, status: eq.status, location: eq.locationId ? String(eq.locationId) : "",
             requiresTraining: eq.requiresTraining, showInTecnologias: eq.showInTecnologias,
             specifications: eq.specifications, materials: eq.materials,
             image: null,
@@ -402,7 +438,7 @@ export default function InventoryItemsPage() {
         form.append("quantity", String(invForm.quantity));
         form.append("unit", invForm.unit);
         form.append("minimumStock", String(invForm.minimumStock));
-        form.append("location", invForm.location);
+        if (invForm.location && invForm.location !== "none") form.append("location", invForm.location);
         form.append("supplier", invForm.supplier);
         if (invForm.unitCost) form.append("unitCost", invForm.unitCost);
         form.append("notes", invForm.notes);
@@ -462,7 +498,7 @@ export default function InventoryItemsPage() {
             name: item.name, sku: item.sku, category: item.category,
             description: item.description, quantity: item.quantity,
             unit: item.unit, minimumStock: item.minimumStock,
-            location: item.location, supplier: item.supplier,
+            location: item.locationId ? String(item.locationId) : "", supplier: item.supplier,
             unitCost: item.unitCost !== null ? String(item.unitCost) : "",
             notes: item.notes, image: null,
         });
@@ -589,7 +625,9 @@ export default function InventoryItemsPage() {
             'available': 'bg-green-100 text-green-700',
             'in-use': 'bg-blue-100 text-blue-700',
             'maintenance': 'bg-yellow-100 text-yellow-700',
+            'inactive': 'bg-gray-100 text-gray-600',
             'out-of-service': 'bg-red-100 text-red-700',
+            'borrowed': 'bg-purple-100 text-purple-700',
             'low-stock': 'bg-yellow-100 text-yellow-700',
             'out-of-stock': 'bg-red-100 text-red-700',
         };
@@ -637,6 +675,19 @@ export default function InventoryItemsPage() {
                 </div>
             </div>
 
+            {/* Equipment Code & Owner Area */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="eq-code">Código de Equipo</Label>
+                    <Input id="eq-code" placeholder="Ej: FL-IMP3D-01" value={equipForm.equipmentCode} onChange={e => setEquipForm({ ...equipForm, equipmentCode: e.target.value })} />
+                    <p className="text-xs text-gray-400">Código único para identificación. Ej: FL-IMP3D-01</p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="eq-area">Área Propietaria</Label>
+                    <Input id="eq-area" placeholder="Ej: FabLab, Depto. Ingeniería" value={equipForm.ownerArea} onChange={e => setEquipForm({ ...equipForm, ownerArea: e.target.value })} />
+                </div>
+            </div>
+
             {/* Brand & Model */}
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -667,8 +718,18 @@ export default function InventoryItemsPage() {
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="eq-location">Ubicación</Label>
-                    <Input id="eq-location" placeholder="Ej: Sala principal" value={equipForm.location} onChange={e => setEquipForm({ ...equipForm, location: e.target.value })} />
+                    <Label htmlFor="eq-location">Ubicación (Sala)</Label>
+                    <Select value={equipForm.location} onValueChange={v => setEquipForm({ ...equipForm, location: v })}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar sala..." /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">Sin asignar</SelectItem>
+                            {roomsList.map(room => (
+                                <SelectItem key={room.id} value={String(room.id)}>
+                                    {room.name}{room.location ? ` — ${room.location}` : ''}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
@@ -694,8 +755,30 @@ export default function InventoryItemsPage() {
             <div className="space-y-2">
                 <Label>Especificaciones</Label>
                 <div className="flex gap-2">
-                    <Input placeholder="Etiqueta" value={newSpecLabel} onChange={e => setNewSpecLabel(e.target.value)} className="flex-1" />
-                    <Input placeholder="Valor" value={newSpecValue} onChange={e => setNewSpecValue(e.target.value)} className="flex-1" />
+                    <Input
+                        placeholder="Etiqueta"
+                        value={newSpecLabel}
+                        onChange={e => setNewSpecLabel(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addSpecification();
+                            }
+                        }}
+                        className="flex-1"
+                    />
+                    <Input
+                        placeholder="Valor"
+                        value={newSpecValue}
+                        onChange={e => setNewSpecValue(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addSpecification();
+                            }
+                        }}
+                        className="flex-1"
+                    />
                     <Button type="button" variant="outline" onClick={addSpecification}><Plus className="h-4 w-4" /></Button>
                 </div>
                 {equipForm.specifications.length > 0 && (
@@ -715,7 +798,17 @@ export default function InventoryItemsPage() {
             <div className="space-y-2">
                 <Label>Materiales compatibles</Label>
                 <div className="flex gap-2">
-                    <Input placeholder="Ej: PLA, ABS, PETG..." value={newMaterial} onChange={e => setNewMaterial(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addMaterial())} />
+                    <Input
+                        placeholder="Ej: PLA, ABS, PETG..."
+                        value={newMaterial}
+                        onChange={e => setNewMaterial(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addMaterial();
+                            }
+                        }}
+                    />
                     <Button type="button" variant="outline" onClick={addMaterial}><Plus className="h-4 w-4" /></Button>
                 </div>
                 {equipForm.materials.length > 0 && (
@@ -815,8 +908,18 @@ export default function InventoryItemsPage() {
             {/* Location & Supplier */}
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                    <Label htmlFor="inv-location">Ubicación</Label>
-                    <Input id="inv-location" placeholder="Ej: Estante A, Cajón 3" value={invForm.location} onChange={e => setInvForm({ ...invForm, location: e.target.value })} />
+                    <Label htmlFor="inv-location">Ubicación (Sala)</Label>
+                    <Select value={invForm.location} onValueChange={v => setInvForm({ ...invForm, location: v })}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar sala..." /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">Sin asignar</SelectItem>
+                            {roomsList.map(room => (
+                                <SelectItem key={room.id} value={String(room.id)}>
+                                    {room.name}{room.location ? ` — ${room.location}` : ''}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="inv-supplier">Proveedor</Label>
@@ -908,10 +1011,10 @@ export default function InventoryItemsPage() {
                                         <TableRow>
                                             <TableHead className="w-[70px]">Imagen</TableHead>
                                             <TableHead>Nombre</TableHead>
+                                            <TableHead>Código</TableHead>
                                             <TableHead>Categoría</TableHead>
                                             <TableHead>Marca / Modelo</TableHead>
                                             <TableHead>Ubicación</TableHead>
-                                            <TableHead className="text-center">Usos activos</TableHead>
                                             <TableHead className="text-center">Estado</TableHead>
                                             <TableHead className="text-center">/tecnologías</TableHead>
                                             <TableHead className="text-right">Acciones</TableHead>
@@ -930,20 +1033,17 @@ export default function InventoryItemsPage() {
                                                 <TableCell>
                                                     <div>
                                                         <p className="font-medium">{eq.name}</p>
+                                                        {eq.ownerArea && <p className="text-xs text-gray-400">{eq.ownerArea}</p>}
                                                         {eq.description && <p className="text-xs text-gray-500 line-clamp-1">{eq.description}</p>}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell><span className="font-mono text-xs text-gray-600">{eq.equipmentCode || '—'}</span></TableCell>
                                                 <TableCell><Badge className={getEquipCategoryColor(eq.category)}>{EQUIPMENT_CATEGORIES[eq.category] || eq.category}</Badge></TableCell>
                                                 <TableCell><span className="text-sm text-gray-700">{[eq.brand, eq.model].filter(Boolean).join(' ') || '—'}</span></TableCell>
                                                 <TableCell>
                                                     {eq.location ? (
                                                         <span className="text-sm text-gray-600 flex items-center gap-1"><MapPin className="h-3 w-3" />{eq.location}</span>
                                                     ) : <span className="text-gray-400 text-sm">—</span>}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {eq.activeUsages > 0 ? (
-                                                        <Badge className="bg-blue-100 text-blue-700"><Activity className="h-3 w-3 mr-1" />{eq.activeUsages}</Badge>
-                                                    ) : <span className="text-gray-400 text-sm">0</span>}
                                                 </TableCell>
                                                 <TableCell className="text-center"><Badge className={getStatusBadge(eq.status)}>{EQUIPMENT_STATUS[eq.status] || eq.status}</Badge></TableCell>
                                                 <TableCell className="text-center">

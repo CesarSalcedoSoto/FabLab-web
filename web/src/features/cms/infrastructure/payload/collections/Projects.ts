@@ -3,21 +3,53 @@
  * 
  * Proyectos realizados en el FabLab.
  * 
- * @categories (fijas según definición del proyecto)
- * - Hardware: Proyectos de electrónica y mecánica
- * - Software: Proyectos de programación
- * - Diseño: Proyectos de diseño 3D, CAD, gráfico
- * - IoT: Proyectos de Internet de las Cosas
+ * @categories (fijas - no personalizables)
+ * - proyectos-fisicos: Proyectos físicos
+ * - proyectos-digitales: Proyectos digitales
+ * - diseno: Diseño
+ * - animacion: Animación
  * 
- * @creators
- * - Pueden ser miembros del equipo (relación) o externos (nombre libre)
+ * @responsibleStaff
+ * - Solo ellos y admin pueden editar el proyecto y sus reuniones
  * 
- * @links
- * - Array genérico, el usuario define nombre y URL
+ * @technologies
+ * - Relación con colección Technologies
+ * - Proyectos digitales requieren al menos una tecnología
+ * 
+ * @beneficiaries
+ * - Siempre visibles, no dependen de horas de práctica
  */
 
-import type { CollectionConfig } from 'payload';
-import { publicRead, isEditor } from '../access/index.ts';
+import type { CollectionConfig, Access } from 'payload';
+import { publicRead } from '../access/index.ts';
+
+/**
+ * Access: Admin o responsable del proyecto
+ */
+const canManageProject: Access = async ({ req: { user, payload }, id }) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+
+    if (id && payload) {
+        try {
+            const project = await payload.findByID({
+                collection: 'projects',
+                id,
+                depth: 0,
+            });
+            const responsibleStaff = (project as any)?.responsibleStaff || [];
+            return responsibleStaff.some((staffId: any) =>
+                String(staffId) === String(user.id) ||
+                String(staffId?.id) === String(user.id)
+            );
+        } catch {
+            return false;
+        }
+    }
+
+    // Para crear: solo admin
+    return user.role === 'admin';
+};
 
 export const Projects: CollectionConfig = {
     slug: 'projects',
@@ -32,9 +64,9 @@ export const Projects: CollectionConfig = {
     },
     access: {
         read: publicRead,
-        create: isEditor,
-        update: isEditor,
-        delete: isEditor,
+        create: ({ req: { user } }) => user?.role === 'admin',
+        update: canManageProject,
+        delete: ({ req: { user } }) => user?.role === 'admin',
     },
     fields: [
         {
@@ -56,12 +88,12 @@ export const Projects: CollectionConfig = {
             required: true,
             label: 'Categoría',
             options: [
-                { label: 'Hardware', value: 'Hardware' },
-                { label: 'Software', value: 'Software' },
-                { label: 'Diseño', value: 'Diseño' },
-                { label: 'IoT', value: 'IoT' },
+                { label: 'Proyectos Físicos', value: 'proyectos-fisicos' },
+                { label: 'Proyectos Digitales', value: 'proyectos-digitales' },
+                { label: 'Diseño', value: 'diseno' },
+                { label: 'Animación', value: 'animacion' },
             ],
-            defaultValue: 'Hardware',
+            defaultValue: 'proyectos-fisicos',
         },
         {
             name: 'description',
@@ -93,15 +125,68 @@ export const Projects: CollectionConfig = {
                 },
             ],
         },
+        // --- Fechas ---
+        {
+            name: 'startDate',
+            type: 'date',
+            label: 'Fecha de Inicio',
+            admin: {
+                date: { pickerAppearance: 'dayOnly' },
+            },
+        },
+        {
+            name: 'endDate',
+            type: 'date',
+            label: 'Fecha de Cierre',
+            admin: {
+                date: { pickerAppearance: 'dayOnly' },
+                description: 'Debe ser posterior a la fecha de inicio',
+            },
+        },
+        // --- Tecnologías (relación con colección Technologies) ---
         {
             name: 'technologies',
+            type: 'relationship',
+            relationTo: 'technologies',
+            hasMany: true,
+            label: 'Tecnologías Utilizadas',
+            admin: {
+                description: 'Selecciona tecnologías del catálogo. Admin puede crear nuevas inline.',
+            },
+        },
+        // --- Personal Responsable ---
+        {
+            name: 'responsibleStaff',
+            type: 'relationship',
+            relationTo: 'users',
+            hasMany: true,
+            label: 'Personal Responsable (Usuarios)',
+            admin: {
+                description: 'Usuarios registrados que pueden editar este proyecto y sus reuniones',
+            },
+        },
+        {
+            name: 'externalStaff',
             type: 'array',
-            label: 'Tecnologías',
-            admin: { description: 'Herramientas, lenguajes, materiales utilizados' },
+            label: 'Personal Responsable (Externos)',
+            admin: {
+                description: 'Personas no registradas en el sistema que participan como responsables',
+            },
             fields: [
-                { name: 'name', type: 'text', required: true },
+                {
+                    name: 'name',
+                    type: 'text',
+                    required: true,
+                    label: 'Nombre completo',
+                },
+                {
+                    name: 'role',
+                    type: 'text',
+                    label: 'Rol / Cargo',
+                },
             ],
         },
+        // --- Creadores ---
         {
             name: 'creators',
             type: 'array',
@@ -135,6 +220,25 @@ export const Projects: CollectionConfig = {
             fields: [
                 { name: 'label', type: 'text', required: true, label: 'Nombre' },
                 { name: 'url', type: 'text', required: true, label: 'URL' },
+            ],
+        },
+        // --- Beneficiarios (siempre visibles, sin depender de practiceHours) ---
+        {
+            name: 'beneficiaries',
+            type: 'array',
+            label: 'Beneficiarios',
+            admin: {
+                description: 'Beneficiarios del proyecto (siempre visible)',
+            },
+            fields: [
+                { name: 'tipoBeneficiario', type: 'text', required: true, label: 'Tipo de Beneficiario' },
+                { name: 'rut', type: 'text', required: true, label: 'RUT' },
+                { name: 'firstName', type: 'text', required: true, label: 'Nombres' },
+                { name: 'paternalLastName', type: 'text', required: true, label: 'Apellido Paterno' },
+                { name: 'maternalLastName', type: 'text', label: 'Apellido Materno' },
+                { name: 'rol', type: 'text', required: true, label: 'Rol' },
+                { name: 'horasDocente', type: 'number', label: 'N° Horas Docente' },
+                { name: 'horasEstudiante', type: 'number', label: 'N° Horas Estudiante' },
             ],
         },
         // ── Horas de Práctica (datos privados, solo admin) ──
@@ -258,4 +362,30 @@ export const Projects: CollectionConfig = {
             admin: { position: 'sidebar' },
         },
     ],
+    hooks: {
+        beforeValidate: [
+            ({ data }) => {
+                if (!data) return data;
+
+                // Validar fecha cierre >= fecha inicio
+                if (data.startDate && data.endDate) {
+                    const start = new Date(data.startDate);
+                    const end = new Date(data.endDate);
+                    if (end < start) {
+                        throw new Error('La fecha de cierre no puede ser anterior a la fecha de inicio');
+                    }
+                }
+
+                // Proyectos digitales requieren al menos una tecnología
+                if (data.category === 'proyectos-digitales') {
+                    const techs = data.technologies;
+                    if (!techs || (Array.isArray(techs) && techs.length === 0)) {
+                        throw new Error('Los proyectos digitales deben tener al menos una tecnología');
+                    }
+                }
+
+                return data;
+            },
+        ],
+    },
 };

@@ -105,6 +105,47 @@ export function TeamMemberModal({ member, isOpen, onClose }: TeamMemberModalProp
                 </ul>
               </div>
 
+              {member.habilidadesPersonales && member.habilidadesPersonales.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Habilidades personales</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {member.habilidadesPersonales.map((skill) => (
+                      <span key={skill} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">{skill}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {member.dominioTecnico && member.dominioTecnico.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Dominio técnico</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {member.dominioTecnico.map((domain) => (
+                      <span key={domain} className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm">{domain}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(member.modalidad || member.disponibilidadSemanal?.length) && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Disponibilidad</h3>
+                  {member.modalidad && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      Modalidad: <span className="font-medium text-gray-900 capitalize">{member.modalidad}</span>
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    {(member.disponibilidadSemanal || []).filter((day) => day.enabled).map((day) => (
+                      <div key={day.day} className="text-sm text-gray-700">
+                        <span className="font-medium">{day.day}:</span>{' '}
+                        {day.timeSlots.map((slot) => `${slot.start}-${slot.end}`).join(', ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {member.proyectos !== undefined && (
                 <div className="mb-8 p-4 bg-orange-50 rounded-2xl">
                   <div className="flex items-center gap-3">

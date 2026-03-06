@@ -14,6 +14,9 @@ const VIEWER_ALLOWED_ROUTES = [
     '/admin/equipment-usage',
     '/admin/profile',
     '/admin/reservas',
+    '/admin/reservas-salas',
+    '/admin/calendario',
+    '/admin/mis-proyectos',
 ];
 
 // Función para verificar si una ruta está permitida para usuarios no-admin

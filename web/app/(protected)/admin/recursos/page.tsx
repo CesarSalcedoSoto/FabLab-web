@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/cards/card";
 import { Button } from "@/shared/ui/buttons/button";
 import { Badge } from "@/shared/ui/badges/badge";
@@ -15,7 +15,7 @@ import {
 import {
   Plus, Search, Pencil, Trash2, Eye, EyeOff,
   FileText, Download, FolderOpen, Loader2, AlertCircle,
-  Lock, Users, Globe, ExternalLink
+  Lock, Users, Globe, ExternalLink, Upload, X, File
 } from "lucide-react";
 import { getAllResources, deleteResource, updateResource, createResource, type ResourceItem } from "./actions";
 
@@ -79,6 +79,13 @@ export default function RecursosAdminPage() {
     visibility: "public",
     status: "draft",
   });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [existingFileId, setExistingFileId] = useState<number | null>(null);
+  const [existingFileName, setExistingFileName] = useState<string | null>(null);
+  const [existingFileSize, setExistingFileSize] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadResources = async () => {
     setLoading(true);
@@ -106,6 +113,10 @@ export default function RecursosAdminPage() {
       title: "", slug: "", description: "", type: "document",
       externalUrl: "", folder: "", visibility: "public", status: "draft",
     });
+    setUploadFile(null);
+    setExistingFileId(null);
+    setExistingFileName(null);
+    setExistingFileSize(null);
     setVista("formulario");
   };
 
@@ -121,18 +132,83 @@ export default function RecursosAdminPage() {
       visibility: resource.visibility,
       status: resource.status,
     });
+    setUploadFile(null);
+    setExistingFileId(resource.file?.id || null);
+    setExistingFileName(resource.file?.filename || null);
+    setExistingFileSize(resource.file?.filesize || null);
     setVista("formulario");
   };
+
+  const uploadMediaFile = async (file: File): Promise<number> => {
+    const formData = new FormData();
+    const altText = file.name.replace(/\.[^/.]+$/, "");
+    formData.append("file", file);
+    formData.append("_payload", JSON.stringify({ alt: altText }));
+
+    const res = await fetch("/api/payload/media", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(message || "Error subiendo archivo");
+    }
+
+    const data = await res.json();
+    return data.doc.id;
+  };
+
+  const handleFileSelect = (file: File) => {
+    if (file.size > 100 * 1024 * 1024) {
+      setError("El archivo es muy grande. Máximo 100MB");
+      return;
+    }
+    setUploadFile(file);
+    setError(null);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  }, []);
 
   const handleGuardar = async () => {
     setSaving(true);
     setError(null);
     try {
+      const data: any = { ...form };
+
+      // Upload file if there's a new one
+      if (uploadFile) {
+        setUploading(true);
+        const mediaId = await uploadMediaFile(uploadFile);
+        setUploading(false);
+        data.file = mediaId;
+      } else if (existingFileId) {
+        data.file = existingFileId;
+      } else if (editando?.file?.id) {
+        // File was removed — clear the relationship
+        data.file = null;
+      }
+
       if (editando) {
-        const res = await updateResource(editando.id, form as any);
+        const res = await updateResource(editando.id, data);
         if (!res.success) throw new Error(res.error);
       } else {
-        const res = await createResource(form as any);
+        const res = await createResource(data);
         if (!res.success) throw new Error(res.error);
       }
       setVista("lista");
@@ -227,15 +303,92 @@ export default function RecursosAdminPage() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Nota: Para subir archivos directamente, usa el CMS de Payload en /cms → Recursos.
-              Aquí puedes crear el registro y vincular archivos o URLs externas.
-            </p>
+            {/* File Upload */}
+            <div>
+              <label className="text-sm font-medium">Archivo</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                  e.target.value = "";
+                }}
+              />
+              {uploadFile ? (
+                <div className="mt-2 border rounded-lg p-4 bg-blue-50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100">
+                      <File className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{uploadFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(uploadFile.size)} — Nuevo archivo (se subirá al guardar)
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="button" size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => fileInputRef.current?.click()}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button type="button" size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => setUploadFile(null)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : existingFileName ? (
+                <div className="mt-2 border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gray-200">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{existingFileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {existingFileSize ? formatBytes(existingFileSize) : ""} — Archivo actual
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="button" size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => fileInputRef.current?.click()} title="Reemplazar">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button type="button" size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => { setExistingFileId(null); setExistingFileName(null); setExistingFileSize(null); }} title="Quitar">
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`mt-2 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragging
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-300 hover:border-primary/50 hover:bg-gray-50"
+                  }`}
+                >
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">Arrastra un archivo o haz clic para seleccionar</p>
+                  <p className="text-xs text-muted-foreground mt-1">PDF, ZIP, STL, o cualquier archivo — Máx. 100MB</p>
+                </div>
+              )}
+              {uploading && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Subiendo archivo...
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="outline" onClick={() => setVista("lista")}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving || !form.title}>
-                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : "Guardar Recurso"}
+              <Button onClick={handleGuardar} disabled={saving || uploading || !form.title}>
+                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{uploading ? "Subiendo archivo..." : "Guardando..."}</> : "Guardar Recurso"}
               </Button>
             </div>
           </CardContent>

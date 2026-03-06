@@ -9,7 +9,7 @@ export interface ResourceItem {
   slug?: string;
   description?: string;
   type: string;
-  file?: { url?: string; filename?: string; mimeType?: string; filesize?: number } | null;
+  file?: { id?: number; url?: string; filename?: string; mimeType?: string; filesize?: number } | null;
   externalUrl?: string;
   thumbnail?: { url?: string } | null;
   folder?: string;
@@ -60,6 +60,7 @@ export async function getPublishedResources(userRole?: string): Promise<Resource
       description: doc.description,
       type: doc.type,
       file: doc.file ? {
+        id: doc.file.id,
         url: doc.file.url,
         filename: doc.file.filename,
         mimeType: doc.file.mimeType,
@@ -98,6 +99,7 @@ export async function getAllResources(): Promise<{ resources: ResourceItem[]; to
         description: doc.description,
         type: doc.type,
         file: doc.file ? {
+          id: doc.file.id,
           url: doc.file.url,
           filename: doc.file.filename,
           mimeType: doc.file.mimeType,

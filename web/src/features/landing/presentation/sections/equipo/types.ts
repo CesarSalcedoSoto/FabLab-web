@@ -22,7 +22,16 @@ export interface TeamMember {
     email: string;
   };
   esDirectivo: boolean;
-  category?: 'leadership' | 'specialist' | 'collaborator';
+  category?: 'leadership' | 'specialist' | 'collaborator' | 'docente';
+  habilidadesPersonales?: string[];
+  dominioTecnico?: string[];
+  modalidad?: string;
+  docenteResponsable?: string;
+  disponibilidadSemanal?: {
+    day: string;
+    enabled: boolean;
+    timeSlots: { start: string; end: string }[];
+  }[];
 }
 
 export interface MiembroDestacado {

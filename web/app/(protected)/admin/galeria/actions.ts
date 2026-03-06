@@ -7,7 +7,7 @@ export interface GalleryItem {
   id: string;
   title: string;
   description?: string;
-  image?: { url?: string; alt?: string; width?: number; height?: number } | null;
+  image?: { id?: number; url?: string; alt?: string; width?: number; height?: number } | null;
   album?: string;
   date?: string;
   featured?: boolean;
@@ -31,6 +31,7 @@ export async function getPublishedGallery(): Promise<GalleryItem[]> {
       title: doc.title,
       description: doc.description,
       image: doc.image ? {
+        id: doc.image.id,
         url: doc.image.url,
         alt: doc.image.alt,
         width: doc.image.width,
@@ -64,6 +65,7 @@ export async function getAllGallery(): Promise<{ items: GalleryItem[]; total: nu
         title: doc.title,
         description: doc.description,
         image: doc.image ? {
+          id: doc.image.id,
           url: doc.image.url,
           alt: doc.image.alt,
           width: doc.image.width,

@@ -49,92 +49,86 @@ interface SidebarItem {
   adminOnly?: boolean; // Solo visible para admins
 }
 
-// Items para usuarios admin
-const adminSidebarItems: SidebarItem[] = [
+interface SidebarGroup {
+  label: string;
+  items: SidebarItem[];
+}
+
+// Items agrupados para usuarios admin
+const adminSidebarGroups: SidebarGroup[] = [
   {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: Home,
-    adminOnly: true,
+    label: 'GENERAL',
+    items: [
+      { title: 'Dashboard', href: '/admin', icon: Home, adminOnly: true },
+      { title: 'Calendario', href: '/admin/calendario', icon: Calendar },
+    ],
   },
   {
-    title: 'Inventario',
-    href: '/admin/inventory',
-    icon: Package,
-    adminOnly: true,
+    label: 'OPERACIÓN DEL LAB',
+    items: [
+      { title: 'Inventario', href: '/admin/inventory', icon: Package, adminOnly: true },
+      { title: 'Equipos', href: '/admin/inventory/items', icon: Wrench, adminOnly: true },
+      { title: 'Usos de Equipos', href: '/admin/equipment-usage', icon: Monitor },
+      { title: 'Reservas Salas', href: '/admin/reservas-salas', icon: CalendarClock },
+      { title: 'Solicitudes FabLab', href: '/admin/solicitudes', icon: ClipboardList, adminOnly: true },
+    ],
   },
   {
-    title: 'Equipos',
-    href: '/admin/inventory/items',
-    icon: Wrench,
-    adminOnly: true,
+    label: 'PERSONAS',
+    items: [
+      { title: 'Especialistas', href: '/admin/content/team', icon: Users, adminOnly: true },
+      { title: 'Proyectos', href: '/admin/content/projects', icon: FolderTree, adminOnly: true },
+    ],
   },
   {
-    title: 'Usos de Equipos',
-    href: '/admin/equipment-usage',
-    icon: Monitor,
+    label: 'CONTENIDO',
+    items: [
+      { title: 'Blog', href: '/admin/blog', icon: FileText, adminOnly: true },
+      { title: 'Eventos', href: '/admin/eventos', icon: Calendar, adminOnly: true },
+      { title: 'Recursos', href: '/admin/recursos', icon: BookOpen, adminOnly: true },
+      { title: 'Galería', href: '/admin/galeria', icon: ImageIcon, adminOnly: true },
+    ],
   },
   {
-    title: 'Solicitudes FabLab',
-    href: '/admin/solicitudes',
-    icon: ClipboardList,
-    adminOnly: true,
+    label: 'DOCUMENTOS',
+    items: [
+      { title: 'Archivos', href: '/admin/media', icon: Database, adminOnly: true },
+    ],
   },
   {
-    title: 'Contacto',
-    href: '/admin/contacto',
-    icon: MessageSquare,
-    adminOnly: true,
-  },
-  {
-    title: 'Blog',
-    href: '/admin/blog',
-    icon: FileText,
-    adminOnly: true,
-  },
-  {
-    title: 'Eventos',
-    href: '/admin/eventos',
-    icon: Calendar,
-    adminOnly: true,
-  },
-  {
-    title: 'Recursos',
-    href: '/admin/recursos',
-    icon: BookOpen,
-    adminOnly: true,
-  },
-  {
-    title: 'Galería',
-    href: '/admin/galeria',
-    icon: ImageIcon,
-    adminOnly: true,
-  },
-  {
-    title: 'Proyectos',
-    href: '/admin/content/projects',
-    icon: FolderTree,
-    adminOnly: true,
-  },
-  {
-    title: 'Especialistas',
-    href: '/admin/content/team',
-    icon: Users,
-    adminOnly: true,
+    label: 'COMUNICACIÓN',
+    items: [
+      { title: 'Contacto', href: '/admin/contacto', icon: MessageSquare, adminOnly: true },
+    ],
   },
 ];
 
-// Items para usuarios normales (viewer)
-const viewerSidebarItems: SidebarItem[] = [
+// Items agrupados para usuarios normales (viewer)
+const viewerSidebarGroups: SidebarGroup[] = [
   {
-    title: 'Usos de Equipos',
-    href: '/admin/equipment-usage',
-    icon: Monitor,
+    label: 'GENERAL',
+    items: [
+      { title: 'Calendario', href: '/admin/calendario', icon: Calendar },
+    ],
   },
   {
-    title: 'Mi Perfil',
-    href: '/admin/profile',
-    icon: User,
+    label: 'OPERACIÓN DEL LAB',
+    items: [
+      { title: 'Usos de Equipos', href: '/admin/equipment-usage', icon: Monitor },
+      { title: 'Reservas Salas', href: '/admin/reservas-salas', icon: CalendarClock },
+    ],
+  },
+  {
+    label: 'PERSONAS',
+    items: [
+      { title: 'Proyectos', href: '/admin/mis-proyectos', icon: FolderTree },
+    ],
+  },
+  {
+    label: 'MI CUENTA',
+    items: [
+      { title: 'Mi Perfil', href: '/admin/profile', icon: User },
+    ],
   },
 ];
 
@@ -159,6 +153,19 @@ function filterItemsByModule(items: SidebarItem[], userAccess: UserModuleAccess)
         : undefined,
     }))
     .filter(item => !item.children || item.children.length > 0);
+}
+
+/**
+ * Filtrar grupos según acceso del usuario a módulos.
+ * Elimina grupos vacíos tras el filtrado.
+ */
+function filterGroupsByModule(groups: SidebarGroup[], userAccess: UserModuleAccess): SidebarGroup[] {
+  return groups
+    .map(group => ({
+      ...group,
+      items: filterItemsByModule(group.items, userAccess),
+    }))
+    .filter(group => group.items.length > 0);
 }
 
 function SidebarItemComponent({ item, collapsed = false }: { item: SidebarItem; collapsed?: boolean }) {
@@ -203,11 +210,11 @@ export function AdminSidebar({ onClose }: { onClose?: () => void } = {}) {
                   user?.role?.code === 'admin' || 
                   (user as any)?.payloadRole === 'admin';
 
-  // Seleccionar items según el rol del usuario
-  const baseItems = isAdmin ? adminSidebarItems : viewerSidebarItems;
+  // Seleccionar grupos según el rol del usuario
+  const baseGroups = isAdmin ? adminSidebarGroups : viewerSidebarGroups;
 
-  // Filtrar items según acceso a módulos (usa effectiveModuleAccess que incluye simulación)
-  const visibleItems = filterItemsByModule(baseItems, effectiveModuleAccess);
+  // Filtrar grupos según acceso a módulos (usa effectiveModuleAccess que incluye simulación)
+  const visibleGroups = filterGroupsByModule(baseGroups, effectiveModuleAccess);
 
   const handleLogout = async () => {
     try {
@@ -284,9 +291,20 @@ export function AdminSidebar({ onClose }: { onClose?: () => void } = {}) {
         </div>
       )}
       
-      <nav className={cn("p-2 space-y-1 flex-1", collapsed && "px-2")}>
-        {visibleItems.map((item) => (
-          <SidebarItemComponent key={item.title} item={item} collapsed={collapsed} />
+      <nav className={cn("p-2 space-y-4 flex-1", collapsed && "px-2")}>
+        {visibleGroups.map((group) => (
+          <div key={group.label}>
+            {!collapsed && (
+              <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-gray-400 uppercase select-none">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <SidebarItemComponent key={item.title} item={item} collapsed={collapsed} />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

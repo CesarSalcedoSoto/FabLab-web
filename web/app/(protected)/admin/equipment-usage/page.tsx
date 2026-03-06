@@ -55,7 +55,10 @@ import {
   CalendarClock,
   Calendar,
   Settings,
+  CalendarCheck,
+  X,
 } from "lucide-react";
+import { Badge } from "@/shared/ui/badges/badge";
 import { toast } from "sonner";
 import { 
   getActiveEquipment, 
@@ -67,7 +70,14 @@ import {
   getUsageHistory,
   getCurrentUserIsAdmin,
   toggleEquipmentMaintenance,
+  getEquipmentReservations,
+  createEquipmentReservation,
+  cancelEquipmentReservation,
+  getEquipmentBusySlots,
+  getMaxUsageMinutes,
+  type EquipmentReservation,
 } from "./actions";
+import { DatePicker } from "@/shared/ui/inputs/date-picker";
 
 interface Equipment {
   id: string;
@@ -154,6 +164,14 @@ const durationOptions = [
   { value: "1w", label: "1 semana" },
 ];
 
+const TIME_SLOTS = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+  "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+  "17:00", "17:30", "18:00", "18:30", "19:00", "19:30",
+  "20:00", "20:30", "21:00", "21:30", "22:00",
+];
+
 export default function EquipmentUsagePage() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [requests, setRequests] = useState<EquipmentRequest[]>([]);
@@ -181,6 +199,21 @@ export default function EquipmentUsagePage() {
     description: "",
   });
 
+  // Reservation state
+  const [reservations, setReservations] = useState<EquipmentReservation[]>([]);
+  const [isReserveDialogOpen, setIsReserveDialogOpen] = useState(false);
+  const [reserveEquipment, setReserveEquipment] = useState<Equipment | null>(null);
+  const [reserveForm, setReserveForm] = useState({
+    date: "",
+    startTime: "",
+    endTime: "",
+    description: "",
+  });
+  const [busySlots, setBusySlots] = useState<{ startTime: string; endTime: string; type: "reservation" | "in-use"; userName: string }[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [maxUsageMinutes, setMaxUsageMinutes] = useState<number | null>(null);
+  const [loadingMaxUsage, setLoadingMaxUsage] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -188,18 +221,20 @@ export default function EquipmentUsagePage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [equipmentData, requestsData, historyData, userId, adminStatus] = await Promise.all([
+      const [equipmentData, requestsData, historyData, userId, adminStatus, reservationsData] = await Promise.all([
         getActiveEquipment(),
         getEquipmentRequests(),
         getUsageHistory(),
         getCurrentUserId(),
         getCurrentUserIsAdmin(),
+        getEquipmentReservations(),
       ]);
       setEquipment(equipmentData);
       setRequests(requestsData);
       setUsageHistory(historyData);
       setCurrentUserId(userId);
       setIsAdmin(adminStatus);
+      setReservations(reservationsData);
     } catch (error) {
       console.error("Error cargando datos:", error);
       toast.error("Error al cargar los datos");
@@ -303,9 +338,176 @@ export default function EquipmentUsagePage() {
     }
   };
 
-  const openUseDialog = (item: Equipment) => {
+  const openUseDialog = async (item: Equipment) => {
     setSelectedEquipment(item);
+    setUseForm({ estimatedDuration: "1h", description: "" });
+    setMaxUsageMinutes(null);
     setIsUseDialogOpen(true);
+    // Fetch max usage time considering upcoming reservations
+    try {
+      setLoadingMaxUsage(true);
+      const maxMin = await getMaxUsageMinutes(item.id);
+      setMaxUsageMinutes(maxMin);
+      // Auto-select a valid duration if default exceeds max
+      if (maxMin !== null && maxMin < 60) {
+        setUseForm(prev => ({ ...prev, estimatedDuration: "30min" }));
+      }
+    } catch {
+      setMaxUsageMinutes(null);
+    } finally {
+      setLoadingMaxUsage(false);
+    }
+  };
+
+  const openReserveDialog = (item: Equipment) => {
+    setReserveEquipment(item);
+    setReserveForm({ date: "", startTime: "", endTime: "", description: "" });
+    setBusySlots([]);
+    setIsReserveDialogOpen(true);
+  };
+
+  // Load busy slots when equipment + date change
+  const loadBusySlots = async (equipmentId: string, date: string) => {
+    if (!equipmentId || !date) {
+      setBusySlots([]);
+      return;
+    }
+    try {
+      setLoadingSlots(true);
+      const slots = await getEquipmentBusySlots(equipmentId, date);
+      setBusySlots(slots);
+    } catch {
+      setBusySlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleReserveDateChange = (date: string) => {
+    setReserveForm(prev => ({ ...prev, date, startTime: "", endTime: "" }));
+    if (reserveEquipment) {
+      loadBusySlots(reserveEquipment.id, date);
+    }
+  };
+
+  /**
+   * Check if a time slot is occupied by an existing reservation or active usage
+   */
+  const isSlotBusy = (slot: string): { busy: boolean; reason?: string } => {
+    for (const b of busySlots) {
+      // A slot is busy if it falls within [startTime, endTime)
+      if (slot >= b.startTime && slot < b.endTime) {
+        const label = b.type === "in-use"
+          ? `En uso por ${b.userName}`
+          : `Reservado por ${b.userName}`;
+        return { busy: true, reason: label };
+      }
+    }
+    return { busy: false };
+  };
+
+  /**
+   * Check if a time slot is too close (less than 1 hour from now)
+   */
+  const isSlotTooSoon = (slot: string): boolean => {
+    if (!reserveForm.date) return false;
+    const now = new Date();
+    const slotDate = new Date(`${reserveForm.date}T${slot}:00`);
+    const diffMs = slotDate.getTime() - now.getTime();
+    return diffMs < 60 * 60 * 1000; // Less than 1 hour
+  };
+
+  /**
+   * Get available start time slots (exclude busy and too-soon)
+   */
+  const getAvailableStartSlots = () => {
+    return TIME_SLOTS.map(slot => {
+      const busyCheck = isSlotBusy(slot);
+      const tooSoon = isSlotTooSoon(slot);
+      return {
+        value: slot,
+        disabled: busyCheck.busy || tooSoon,
+        reason: busyCheck.busy ? busyCheck.reason : tooSoon ? "Menos de 1h de anticipación" : undefined,
+      };
+    });
+  };
+
+  /**
+   * Get available end time slots (after start, exclude busy between start-end)
+   */
+  const getAvailableEndSlots = () => {
+    if (!reserveForm.startTime) return [];
+    return TIME_SLOTS
+      .filter(t => t > reserveForm.startTime)
+      .map(slot => {
+        // Check if any busy slot overlaps between startTime and this end slot
+        const wouldConflict = busySlots.some(b =>
+          b.startTime < slot && reserveForm.startTime < b.endTime
+        );
+        return {
+          value: slot,
+          disabled: wouldConflict,
+          reason: wouldConflict ? "Conflicto con reserva/uso existente" : undefined,
+        };
+      });
+  };
+
+  const handleReserveEquipment = async () => {
+    if (!reserveEquipment) return;
+
+    if (!reserveForm.description.trim()) {
+      toast.error("La descripción es obligatoria para reservar un equipo");
+      return;
+    }
+
+    if (!reserveForm.date || !reserveForm.startTime || !reserveForm.endTime) {
+      toast.error("Completa la fecha, hora de inicio y hora de fin");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const result = await createEquipmentReservation({
+        equipmentId: reserveEquipment.id,
+        equipmentName: reserveEquipment.name,
+        date: reserveForm.date,
+        startTime: reserveForm.startTime,
+        endTime: reserveForm.endTime,
+        description: reserveForm.description.trim(),
+      });
+
+      if (result.success) {
+        toast.success(`Reserva creada para: ${reserveEquipment.name}`);
+        setIsReserveDialogOpen(false);
+        setReserveEquipment(null);
+        setReserveForm({ date: "", startTime: "", endTime: "", description: "" });
+        loadData();
+      } else {
+        toast.error(result.error || "Error al crear la reserva");
+      }
+    } catch (error) {
+      toast.error("Error al crear la reserva");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelReservation = async (reservationId: string) => {
+    try {
+      setIsSubmitting(true);
+      const result = await cancelEquipmentReservation(reservationId);
+
+      if (result.success) {
+        toast.success("Reserva cancelada");
+        loadData();
+      } else {
+        toast.error(result.error || "Error al cancelar la reserva");
+      }
+    } catch (error) {
+      toast.error("Error al cancelar la reserva");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const categories = ["all", ...new Set(equipment.map(e => e.category))];
@@ -440,10 +642,14 @@ export default function EquipmentUsagePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="equipment" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <Package className="h-4 w-4" />
             <span className="hidden xs:inline">Equipos</span>
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+            <CalendarCheck className="h-4 w-4" />
+            <span className="hidden xs:inline">Reservas</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <History className="h-4 w-4" />
@@ -554,15 +760,15 @@ export default function EquipmentUsagePage() {
                       <div className="mt-2 sm:mt-3 flex flex-col gap-1 sm:gap-2">
                         <div className="flex gap-1 sm:gap-2">
                           {canUse && (
-                            <Button 
-                              size="sm" 
-                              className="flex-1 bg-green-600 hover:bg-green-700 text-[10px] sm:text-sm h-7 sm:h-9 px-1 sm:px-3"
-                              onClick={() => openUseDialog(item)}
-                            >
-                              <Play className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                              <span className="hidden sm:inline">Usar Equipo</span>
-                              <span className="sm:hidden ml-0.5">Usar</span>
-                            </Button>
+                              <Button 
+                                size="sm" 
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-[10px] sm:text-sm h-7 sm:h-9 px-1 sm:px-3"
+                                onClick={() => openUseDialog(item)}
+                              >
+                                <Play className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Usar</span>
+                                <span className="sm:hidden ml-0.5">Usar</span>
+                              </Button>
                           )}
                           {canRelease && (
                             <Button 
@@ -577,12 +783,25 @@ export default function EquipmentUsagePage() {
                               <span className="sm:hidden ml-0.5">Dejar</span>
                             </Button>
                           )}
-                          {item.status === "in-use" && !isCurrentUserUsing && (
-                            <p className="text-[9px] sm:text-xs text-gray-500 italic flex-1 text-center py-1 sm:py-2">
-                              <span className="hidden sm:inline">En uso por otra persona</span>
-                              <span className="sm:hidden">En uso</span>
-                            </p>
+                          {item.status !== "maintenance" && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50 text-[10px] sm:text-sm h-7 sm:h-9 px-1 sm:px-3"
+                              onClick={() => openReserveDialog(item)}
+                            >
+                              <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Reservar</span>
+                              <span className="sm:hidden ml-0.5">Reservar</span>
+                            </Button>
                           )}
+                        </div>
+                        {item.status === "in-use" && !isCurrentUserUsing && !canRelease && (
+                          <p className="text-[9px] sm:text-xs text-gray-500 italic text-center py-0.5">
+                            <span className="hidden sm:inline">En uso por otra persona</span>
+                            <span className="sm:hidden">En uso</span>
+                          </p>
+                        )}
                           {item.status === "maintenance" && !isAdmin && (
                             <p className="text-[9px] sm:text-xs text-yellow-600 italic flex-1 text-center py-1 sm:py-2">
                               <span className="hidden sm:inline">En mantenimiento</span>
@@ -610,13 +829,123 @@ export default function EquipmentUsagePage() {
                           </Button>
                         )}
                       </div>
-                      </div>
                     </CardContent>
                   </Card>
                 );
               })
             )}
           </div>
+        </TabsContent>
+
+        {/* Reservations Tab */}
+        <TabsContent value="reservations" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarCheck className="h-5 w-5 text-blue-500" />
+                Reservas de Equipos
+              </CardTitle>
+              <CardDescription>
+                Reservas programadas de equipos. Selecciona un equipo disponible en la pestaña &quot;Equipos&quot; y presiona &quot;Reservar&quot;.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {reservations.filter(r => r.status === "pending" || r.status === "active").length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <CalendarCheck className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay reservas activas</p>
+                  <p className="text-sm mt-1">Ve a la pestaña &quot;Equipos&quot; y presiona &quot;Reservar&quot; en un equipo disponible</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reservations
+                    .filter(r => r.status === "pending" || r.status === "active")
+                    .map((reservation) => (
+                    <div
+                      key={reservation.id}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border bg-blue-50 border-blue-200 transition-all"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-900">{reservation.equipmentName}</span>
+                          <Badge variant="outline" className={
+                            reservation.status === "active"
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : "bg-blue-100 text-blue-700 border-blue-200"
+                          }>
+                            {reservation.status === "active" ? "Activa" : "Pendiente"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 italic">&ldquo;{reservation.description}&rdquo;</p>
+                        <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {reservation.date}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {reservation.startTime} - {reservation.endTime}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {reservation.userName}
+                          </span>
+                        </div>
+                      </div>
+                      {(reservation.userId === currentUserId || isAdmin) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-300 text-red-600 hover:bg-red-50 flex-shrink-0"
+                          onClick={() => handleCancelReservation(reservation.id)}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Reservas pasadas/canceladas */}
+              {reservations.filter(r => r.status === "completed" || r.status === "cancelled").length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-500 mb-3">Historial de Reservas</h4>
+                  <div className="space-y-2">
+                    {reservations
+                      .filter(r => r.status === "completed" || r.status === "cancelled")
+                      .slice(0, 10)
+                      .map((reservation) => (
+                      <div
+                        key={reservation.id}
+                        className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border bg-gray-50 border-gray-200"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-700">{reservation.equipmentName}</span>
+                            <Badge variant="outline" className={
+                              reservation.status === "completed"
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                            }>
+                              {reservation.status === "completed" ? "Completada" : "Cancelada"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            <span>{reservation.date}</span>
+                            <span>{reservation.startTime} - {reservation.endTime}</span>
+                            <span>{reservation.userName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* History Tab */}
@@ -798,21 +1127,54 @@ export default function EquipmentUsagePage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="duration">Tiempo estimado de uso *</Label>
-              <Select
-                value={useForm.estimatedDuration}
-                onValueChange={(value) => setUseForm({ ...useForm, estimatedDuration: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona duración" />
-                </SelectTrigger>
-                <SelectContent>
-                  {durationOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loadingMaxUsage ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verificando disponibilidad...
+                </div>
+              ) : (
+                <>
+                  <Select
+                    value={useForm.estimatedDuration}
+                    onValueChange={(value) => setUseForm({ ...useForm, estimatedDuration: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona duración" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durationOptions.map((option) => {
+                        const durationMinMap: Record<string, number> = {
+                          "30min": 30, "1h": 60, "2h": 120, "4h": 240,
+                          "8h": 480, "1d": 1440, "2d": 2880, "1w": 10080,
+                        };
+                        const optionMin = durationMinMap[option.value] || 60;
+                        const exceedsMax = maxUsageMinutes !== null && optionMin > maxUsageMinutes;
+                        return (
+                          <SelectItem key={option.value} value={option.value} disabled={exceedsMax}>
+                            <span className="flex items-center gap-2">
+                              {option.label}
+                              {exceedsMax && (
+                                <span className="text-[10px] text-red-500 font-medium">
+                                  Reserva próxima
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {maxUsageMinutes !== null && (
+                    <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs text-amber-700 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        Hay una reserva en {maxUsageMinutes < 60 ? `${maxUsageMinutes} min` : `${Math.floor(maxUsageMinutes / 60)}h${maxUsageMinutes % 60 > 0 ? ` ${maxUsageMinutes % 60}min` : ""}`}. 
+                        El tiempo de uso está limitado.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -937,6 +1299,171 @@ export default function EquipmentUsagePage() {
                 <>
                   <Send className="h-4 w-4 mr-2" />
                   Enviar Solicitud
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reserve Equipment Dialog */}
+      <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-blue-600" />
+              Reservar Equipo
+            </DialogTitle>
+            <DialogDescription>
+              {reserveEquipment && (
+                <span>Reservar: <strong>{reserveEquipment.name}</strong></span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Fecha *</Label>
+              <DatePicker
+                value={reserveForm.date}
+                onChange={handleReserveDateChange}
+                placeholder="Seleccionar fecha"
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              />
+            </div>
+
+            {/* Busy slots indicator */}
+            {reserveForm.date && busySlots.length > 0 && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-medium text-amber-800 mb-1.5 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Horarios ocupados este día:
+                </p>
+                <div className="space-y-1">
+                  {busySlots.map((b, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-amber-700">
+                      <span className={`inline-block w-2 h-2 rounded-full ${b.type === "in-use" ? "bg-blue-500" : "bg-amber-500"}`} />
+                      <span className="font-medium">{b.startTime} - {b.endTime}</span>
+                      <span className="text-amber-600">
+                        {b.type === "in-use" ? `En uso (${b.userName})` : `Reservado (${b.userName})`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingSlots && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Verificando disponibilidad...
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="reserveStartTime">Hora Inicio *</Label>
+                <Select
+                  value={reserveForm.startTime}
+                  onValueChange={(value) => setReserveForm({ ...reserveForm, startTime: value, endTime: "" })}
+                  disabled={!reserveForm.date}
+                >
+                  <SelectTrigger id="reserveStartTime">
+                    <SelectValue placeholder={reserveForm.date ? "Inicio" : "Elige fecha"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableStartSlots().map((slot) => (
+                      <SelectItem key={slot.value} value={slot.value} disabled={slot.disabled}>
+                        <span className="flex items-center gap-2">
+                          {slot.value}
+                          {slot.disabled && (
+                            <span className="text-[10px] text-red-500 font-medium">
+                              {slot.reason === "Menos de 1h de anticipación" ? "⏱ Mín. 1h" : "🔴 Ocupado"}
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reserveEndTime">Hora Fin *</Label>
+                <Select
+                  value={reserveForm.endTime}
+                  onValueChange={(value) => setReserveForm({ ...reserveForm, endTime: value })}
+                  disabled={!reserveForm.startTime}
+                >
+                  <SelectTrigger id="reserveEndTime">
+                    <SelectValue placeholder={reserveForm.startTime ? "Fin" : "Elige inicio"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableEndSlots().map((slot) => (
+                      <SelectItem key={slot.value} value={slot.value} disabled={slot.disabled}>
+                        <span className="flex items-center gap-2">
+                          {slot.value}
+                          {slot.disabled && (
+                            <span className="text-[10px] text-red-500 font-medium">🔴 Conflicto</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 1-hour anticipation warning */}
+            {reserveForm.date && reserveForm.startTime && isSlotTooSoon(reserveForm.startTime) && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Debes reservar con al menos 1 hora de anticipación
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="reserveDescription">
+                Descripción / Motivo <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="reserveDescription"
+                placeholder="Describe para qué necesitas reservar este equipo (obligatorio)"
+                value={reserveForm.description}
+                onChange={(e) => setReserveForm({ ...reserveForm, description: e.target.value })}
+                rows={3}
+                className={!reserveForm.description.trim() ? "border-red-300 focus:border-red-500" : ""}
+              />
+              {!reserveForm.description.trim() && (
+                <p className="text-xs text-red-500">La descripción es obligatoria</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsReserveDialogOpen(false);
+                setReserveEquipment(null);
+              }}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleReserveEquipment}
+              disabled={isSubmitting || !reserveForm.description.trim() || !reserveForm.date || !reserveForm.startTime || !reserveForm.endTime}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Reservando...
+                </>
+              ) : (
+                <>
+                  <CalendarCheck className="h-4 w-4 mr-2" />
+                  Confirmar Reserva
                 </>
               )}
             </Button>

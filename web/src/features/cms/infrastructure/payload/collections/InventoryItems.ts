@@ -116,10 +116,11 @@ export const InventoryItems: CollectionConfig = {
         },
         {
             name: 'location',
-            type: 'text',
-            label: 'Ubicación',
+            type: 'relationship',
+            relationTo: 'rooms' as any,
+            label: 'Ubicación (Sala)',
             admin: {
-                description: 'Ej: "Bodega A", "Estante 3"',
+                description: 'Sala o espacio donde se encuentra este artículo',
             },
         },
         {

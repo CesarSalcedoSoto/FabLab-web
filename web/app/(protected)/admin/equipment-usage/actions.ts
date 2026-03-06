@@ -159,7 +159,7 @@ export async function getActiveEquipment(): Promise<Equipment[]> {
           category: CATEGORY_LABELS[doc.category] || doc.category || "Otros",
           status: isInMaintenance ? "maintenance" as const : activeUsage ? "in-use" as const : "available" as const,
           quantity: 1,
-          location: doc.location || "FabLab Principal",
+          location: typeof doc.location === 'object' && doc.location ? doc.location.name || "FabLab Principal" : (doc.location || "FabLab Principal"),
           image: imageUrl,
           currentUserId: activeUsage?.userId,
           currentUserName: activeUsage?.userName,
@@ -623,4 +623,321 @@ function calculateEndTime(startTime: string, duration: string): string {
   };
   const minutes = durationMap[duration] || 60;
   return new Date(start.getTime() + minutes * 60 * 1000).toISOString();
+}
+
+// ==================== RESERVAS DE EQUIPOS ====================
+
+export interface EquipmentReservation {
+  id: string;
+  equipmentId: string;
+  equipmentName: string;
+  userId: string;
+  userName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  description: string;
+  status: "pending" | "active" | "completed" | "cancelled";
+  createdAt: string;
+}
+
+/**
+ * Obtener reservas de equipos
+ */
+export async function getEquipmentReservations(): Promise<EquipmentReservation[]> {
+  try {
+    const payload = await getPayload({ config });
+
+    const { docs: reservations } = await payload.find({
+      collection: "equipment-reservations",
+      sort: "-createdAt",
+      limit: 200,
+      depth: 1,
+      overrideAccess: true,
+    });
+
+    return reservations.map((res: any) => ({
+      id: String(res.id),
+      equipmentId: res.equipmentId || "",
+      equipmentName: res.equipmentName || "",
+      userId: typeof res.user === "object" ? String(res.user?.id) : String(res.user),
+      userName: res.userName || (typeof res.user === "object" ? res.user?.name : "Usuario"),
+      date: res.date || "",
+      startTime: res.startTime || "",
+      endTime: res.endTime || "",
+      description: res.description || "",
+      status: res.status || "pending",
+      createdAt: res.createdAt,
+    }));
+  } catch (error) {
+    console.error("[EquipmentReservations] Error obteniendo reservas:", error);
+    return [];
+  }
+}
+
+/**
+ * Crear una reserva de equipo (descripción obligatoria)
+ */
+export async function createEquipmentReservation(data: {
+  equipmentId: string;
+  equipmentName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  description: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const payload = await getPayload({ config });
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { success: false, error: "Debes iniciar sesión para reservar un equipo" };
+    }
+
+    if (!data.description || !data.description.trim()) {
+      return { success: false, error: "La descripción es obligatoria" };
+    }
+
+    if (!data.date || !data.startTime || !data.endTime) {
+      return { success: false, error: "Fecha, hora de inicio y hora de fin son obligatorias" };
+    }
+
+    if (data.startTime >= data.endTime) {
+      return { success: false, error: "La hora de fin debe ser posterior a la hora de inicio" };
+    }
+
+    // Verificar que la reserva sea con al menos 1 hora de anticipación
+    const now = new Date();
+    const reservationStart = new Date(`${data.date}T${data.startTime}:00`);
+    const diffMs = reservationStart.getTime() - now.getTime();
+    const diffMinutes = diffMs / (1000 * 60);
+
+    if (diffMinutes < 60) {
+      return { success: false, error: "Debes reservar con al menos 1 hora de anticipación" };
+    }
+
+    // Verificar que no exista otra reserva del mismo equipo en la misma fecha/hora
+    const { docs: existingReservations } = await payload.find({
+      collection: "equipment-reservations",
+      where: {
+        and: [
+          { equipmentId: { equals: data.equipmentId } },
+          { date: { equals: data.date } },
+          { status: { in: ["pending", "active"] } },
+        ],
+      },
+      limit: 100,
+      overrideAccess: true,
+    });
+
+    const hasConflict = existingReservations.some((res: any) => {
+      return res.startTime < data.endTime && data.startTime < res.endTime;
+    });
+
+    if (hasConflict) {
+      return { success: false, error: "Ya existe una reserva para este equipo en ese horario" };
+    }
+
+    await payload.create({
+      collection: "equipment-reservations",
+      data: {
+        equipmentId: data.equipmentId,
+        equipmentName: data.equipmentName,
+        user: user.id,
+        userName: user.name,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        description: data.description.trim(),
+        status: "pending",
+      },
+    });
+
+    revalidatePath("/admin/equipment-usage");
+    return { success: true };
+  } catch (error) {
+    console.error("[EquipmentReservations] Error creando reserva:", error);
+    return { success: false, error: "Error al crear la reserva" };
+  }
+}
+
+/**
+ * Cancelar una reserva del usuario actual
+ */
+export async function cancelEquipmentReservation(reservationId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const payload = await getPayload({ config });
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { success: false, error: "Debes iniciar sesión" };
+    }
+
+    const reservation = await payload.findByID({
+      collection: "equipment-reservations",
+      id: reservationId,
+      depth: 1,
+    });
+
+    if (!reservation) {
+      return { success: false, error: "Reserva no encontrada" };
+    }
+
+    const resUserId = typeof (reservation as any).user === "object"
+      ? String((reservation as any).user?.id)
+      : String((reservation as any).user);
+
+    if (resUserId !== user.idString && !user.isAdmin) {
+      return { success: false, error: "Solo puedes cancelar tus propias reservas" };
+    }
+
+    await payload.update({
+      collection: "equipment-reservations",
+      id: reservationId,
+      data: { status: "cancelled" },
+    });
+
+    revalidatePath("/admin/equipment-usage");
+    return { success: true };
+  } catch (error) {
+    console.error("[EquipmentReservations] Error cancelando reserva:", error);
+    return { success: false, error: "Error al cancelar la reserva" };
+  }
+}
+
+/**
+ * Obtener los slots ocupados para un equipo en una fecha específica.
+ * Incluye reservas existentes Y uso activo del equipo.
+ * Retorna un array de { startTime, endTime, type, userName }.
+ */
+export async function getEquipmentBusySlots(
+  equipmentId: string,
+  date: string
+): Promise<{ startTime: string; endTime: string; type: "reservation" | "in-use"; userName: string }[]> {
+  try {
+    const payload = await getPayload({ config });
+    const busy: { startTime: string; endTime: string; type: "reservation" | "in-use"; userName: string }[] = [];
+
+    // 1. Reservas activas/pendientes para este equipo en esta fecha
+    const { docs: reservations } = await payload.find({
+      collection: "equipment-reservations",
+      where: {
+        and: [
+          { equipmentId: { equals: equipmentId } },
+          { date: { equals: date } },
+          { status: { in: ["pending", "active"] } },
+        ],
+      },
+      limit: 100,
+      depth: 1,
+      overrideAccess: true,
+    });
+
+    for (const res of reservations) {
+      busy.push({
+        startTime: (res as any).startTime || "",
+        endTime: (res as any).endTime || "",
+        type: "reservation",
+        userName: (res as any).userName || "Usuario",
+      });
+    }
+
+    // 2. Si la fecha es hoy, verificar si el equipo está actualmente en uso
+    const today = new Date().toISOString().slice(0, 10);
+    if (date === today) {
+      const { docs: activeUsages } = await payload.find({
+        collection: "equipment-usage",
+        where: {
+          and: [
+            { equipmentId: { equals: equipmentId } },
+            { status: { equals: "active" } },
+          ],
+        },
+        limit: 1,
+        depth: 1,
+        overrideAccess: true,
+      });
+
+      if (activeUsages.length > 0) {
+        const usage = activeUsages[0] as any;
+        const startTime = usage.startTime ? new Date(usage.startTime).toTimeString().slice(0, 5) : "00:00";
+        const endTimeStr = usage.estimatedDuration
+          ? new Date(new Date(usage.startTime).getTime() + parseDurationToMs(usage.estimatedDuration)).toTimeString().slice(0, 5)
+          : "23:59";
+        busy.push({
+          startTime,
+          endTime: endTimeStr,
+          type: "in-use",
+          userName: usage.userName || "Usuario",
+        });
+      }
+    }
+
+    return busy;
+  } catch (error) {
+    console.error("[EquipmentReservations] Error obteniendo slots ocupados:", error);
+    return [];
+  }
+}
+
+function parseDurationToMs(duration: string): number {
+  const map: Record<string, number> = {
+    "30min": 30 * 60 * 1000,
+    "1h": 60 * 60 * 1000,
+    "2h": 2 * 60 * 60 * 1000,
+    "4h": 4 * 60 * 60 * 1000,
+    "8h": 8 * 60 * 60 * 1000,
+    "1d": 24 * 60 * 60 * 1000,
+    "2d": 48 * 60 * 60 * 1000,
+    "1w": 7 * 24 * 60 * 60 * 1000,
+  };
+  return map[duration] || 60 * 60 * 1000;
+}
+
+/**
+ * Obtener los minutos disponibles hasta la próxima reserva de un equipo (hoy).
+ * Retorna null si no hay reservas próximas hoy.
+ */
+export async function getMaxUsageMinutes(equipmentId: string): Promise<number | null> {
+  try {
+    const payload = await getPayload({ config });
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const nowTime = now.toTimeString().slice(0, 5);
+
+    const { docs: reservations } = await payload.find({
+      collection: "equipment-reservations",
+      where: {
+        and: [
+          { equipmentId: { equals: equipmentId } },
+          { date: { equals: todayStr } },
+          { status: { in: ["pending", "active"] } },
+        ],
+      },
+      limit: 100,
+      overrideAccess: true,
+    });
+
+    // Find the earliest reservation that starts after now
+    let earliestStart: string | null = null;
+    for (const res of reservations) {
+      const startTime = (res as any).startTime as string;
+      if (startTime > nowTime) {
+        if (!earliestStart || startTime < earliestStart) {
+          earliestStart = startTime;
+        }
+      }
+    }
+
+    if (!earliestStart) return null;
+
+    // Calculate minutes from now to that reservation
+    const [nowH, nowM] = nowTime.split(":").map(Number);
+    const [resH, resM] = earliestStart.split(":").map(Number);
+    const diffMinutes = (resH * 60 + resM) - (nowH * 60 + nowM);
+    return diffMinutes > 0 ? diffMinutes : null;
+  } catch (error) {
+    console.error("[EquipmentReservations] Error obteniendo máximo de uso:", error);
+    return null;
+  }
 }

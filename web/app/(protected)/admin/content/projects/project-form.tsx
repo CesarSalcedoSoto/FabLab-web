@@ -112,7 +112,7 @@ export function ProjectForm({ project, isOpen, onOpenChange, onSuccess }: Projec
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0 flex flex-col h-full bg-white">
+            <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0 flex flex-col h-full bg-white">
                 <SheetHeader className="px-6 py-5 border-b bg-gray-50">
                     <div className="flex items-center gap-4">
                         <div className={`p-3 rounded-xl ${project ? 'bg-blue-100' : 'bg-orange-100'}`}>
@@ -245,6 +245,7 @@ export function ProjectForm({ project, isOpen, onOpenChange, onSuccess }: Projec
                                         <div key={idx} className="flex gap-2 items-center">
                                             <Input placeholder="Nombre (ej: Video, Repo, Docs)" value={link.label} onChange={(e) => handleLinkChange(idx, 'label', e.target.value)} className="w-40" />
                                             <Input placeholder="https://..." value={link.url} onChange={(e) => handleLinkChange(idx, 'url', e.target.value)} className="flex-1" />
+                                            {link.url && <a href={link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors shrink-0" title="Abrir enlace"><ExternalLink className="w-4 h-4 text-gray-600" /></a>}
                                             <Button type="button" variant="ghost" size="sm" onClick={() => setLinks(links.filter((_, i) => i !== idx))} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>
                                         </div>
                                     ))}

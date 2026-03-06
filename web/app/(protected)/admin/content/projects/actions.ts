@@ -3,7 +3,88 @@
 import { getPayload } from "payload";
 import config from "@payload-config";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import type { ProjectData } from "./data";
+
+type AdminUser = { id: string | number; role?: string } | null;
+
+async function getCurrentUser(): Promise<AdminUser> {
+    try {
+        const payload = await getPayload({ config });
+        const cookieStore = await cookies();
+        const token = cookieStore.get("payload-token")?.value || cookieStore.get("fablab_token")?.value;
+        if (!token) return null;
+        const { user } = await payload.auth({ headers: new Headers({ Authorization: `JWT ${token}` }) });
+        return (user as any) || null;
+    } catch {
+        return null;
+    }
+}
+
+function isAdmin(user: AdminUser): boolean {
+    if (!user) return false;
+    return user.role === 'admin' || user.role === 'super_admin';
+}
+
+function canManageProject(user: AdminUser, projectDoc: any): boolean {
+    if (!user) return false;
+    if (isAdmin(user)) return true;
+    const responsible = Array.isArray(projectDoc?.responsibleStaff) ? projectDoc.responsibleStaff : [];
+    const userId = String(user.id);
+
+    return responsible.some((member: any) => {
+        if (member && typeof member === 'object' && member.id != null) return String(member.id) === userId;
+        return String(member) === userId;
+    });
+}
+
+function normalizeCategory(category: string): string {
+    const map: Record<string, string> = {
+        'Hardware': 'proyectos-fisicos',
+        'Software': 'proyectos-digitales',
+        'Diseño': 'diseno',
+        'IoT': 'animacion',
+        'Proyectos físicos': 'proyectos-fisicos',
+        'Proyectos digitales': 'proyectos-digitales',
+        'Animación': 'animacion',
+    };
+    return map[category] || category;
+}
+
+function validateProjectPayload(params: {
+    category: string;
+    technologies: number[];
+    startDate?: string;
+    endDate?: string;
+    meetings?: Array<{ date?: string; time?: string; status?: string }>;
+}): void {
+    const { category, technologies, startDate, endDate, meetings = [] } = params;
+
+    if (startDate && endDate && new Date(endDate).getTime() < new Date(startDate).getTime()) {
+        throw new Error('La fecha de cierre no puede ser anterior a la fecha de inicio.');
+    }
+
+    if (category === 'proyectos-digitales' && technologies.length === 0) {
+        throw new Error('Si el proyecto es digital, debe tener al menos una tecnología.');
+    }
+
+    const now = new Date();
+    for (const meeting of meetings) {
+        if (meeting?.status !== 'programada') continue;
+        if (!meeting.date || !meeting.time) continue;
+
+        const [h, m] = String(meeting.time).split(':').map(Number);
+        if (Number.isNaN(h) || Number.isNaN(m)) {
+            throw new Error('Hora de reunión inválida. Usa formato HH:mm.');
+        }
+        // Parse date parts to avoid UTC-vs-local timezone issues
+        const dateParts = String(meeting.date).slice(0, 10).split('-').map(Number);
+        const meetingDateTime = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], h, m, 0, 0);
+        if (meetingDateTime.getTime() < now.getTime()) {
+            throw new Error('Reunión programada no puede estar en fecha/hora pasada.');
+        }
+    }
+}
 
 
 export async function getProjects(): Promise<ProjectData[]> {
@@ -22,6 +103,8 @@ export async function getProjects(): Promise<ProjectData[]> {
             title: doc.title,
             slug: doc.slug,
             category: doc.category,
+            startDate: doc.startDate,
+            endDate: doc.endDate,
             description: doc.description,
             featuredImage: typeof doc.featuredImage === 'object' ? doc.featuredImage?.url : null,
             gallery: doc.gallery?.map((g: any) => ({
@@ -29,14 +112,23 @@ export async function getProjects(): Promise<ProjectData[]> {
                 url: typeof g.image === 'object' ? g.image?.url : null,
                 alt: typeof g.image === 'object' ? g.image?.alt : '',
             })).filter((g: any) => g.url) || [],
-            technologies: doc.technologies?.map((t: any) => t.name) || [],
+            technologies: (doc.technologies || []).map((t: any) => {
+                if (typeof t === 'object' && t !== null) {
+                    return { id: String(t.id), name: t.name || '', category: t.category || '' };
+                }
+                return { id: String(t), name: '', category: '' };
+            }),
             creators: doc.creators?.map((c: any) => ({
                 teamMemberId: c.teamMember?.id ? String(c.teamMember.id) : undefined,
                 teamMemberName: c.teamMember?.name,
                 externalName: c.externalName,
                 role: c.role,
             })) || [],
+            responsibleStaff: (doc.responsibleStaff || []).map((staff: any) => String(staff?.id || staff)),
+            externalStaff: (doc.externalStaff || []).map((s: any) => ({ name: s.name || '', role: s.role || '' })),
             links: doc.links?.map((l: any) => ({ label: l.label, url: l.url })) || [],
+            beneficiaries: doc.beneficiaries || [],
+            meetings: [], // Meetings are now a separate collection, loaded separately
             year: doc.year || new Date().getFullYear(),
             featured: doc.featured || false,
             status: doc.status || 'draft',
@@ -100,14 +192,27 @@ export async function getTeamMembersForSelect(): Promise<Array<{ id: string; nam
 export async function createProject(formData: FormData): Promise<{ success: boolean; error?: string }> {
     try {
         const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        if (!isAdmin(currentUser)) {
+            return { success: false, error: 'Solo el administrador puede crear proyectos.' };
+        }
 
-        const technologies = (formData.get('technologies') as string || '')
-            .split(',').map(t => ({ name: t.trim() })).filter(t => t.name);
+        // Technologies are now relationship IDs referencing the technologies collection
+        const technologiesRaw = (formData.get('technologies') as string || '').split(',').map(t => t.trim()).filter(Boolean);
+        const technologyIds = technologiesRaw.map(t => parseInt(t, 10)).filter(id => !Number.isNaN(id));
 
         let rawCreators: any[] = [];
         let links: any[] = [];
+        let responsibleStaffRaw: string[] = [];
+        let externalStaffRaw: any[] = [];
+        let beneficiaries: any[] = [];
+        let meetings: any[] = [];
         try { rawCreators = JSON.parse(formData.get('creators') as string || '[]'); } catch { }
         try { links = JSON.parse(formData.get('links') as string || '[]'); } catch { }
+        try { responsibleStaffRaw = JSON.parse(formData.get('responsibleStaff') as string || '[]'); } catch { }
+        try { externalStaffRaw = JSON.parse(formData.get('externalStaff') as string || '[]'); } catch { }
+        try { beneficiaries = JSON.parse(formData.get('beneficiaries') as string || '[]'); } catch { }
+        try { meetings = JSON.parse(formData.get('meetings') as string || '[]'); } catch { }
 
         // Formatear creadores - Payload espera IDs numéricos para relaciones
         const creators = rawCreators.map(c => ({
@@ -159,7 +264,17 @@ export async function createProject(formData: FormData): Promise<{ success: bool
         }
 
         const title = formData.get('title') as string;
+        const category = normalizeCategory((formData.get('category') as string) || 'proyectos-fisicos');
+        const startDate = (formData.get('startDate') as string) || undefined;
+        const endDate = (formData.get('endDate') as string) || undefined;
         let slug = (formData.get('slug') as string) || title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+        validateProjectPayload({ category, technologies: technologyIds, startDate, endDate, meetings });
+
+        const responsibleStaff = responsibleStaffRaw.map((id) => parseInt(String(id), 10)).filter((id) => !Number.isNaN(id));
+        const externalStaff = externalStaffRaw
+            .filter((s: any) => s.name?.trim())
+            .map((s: any) => ({ name: s.name.trim(), role: s.role?.trim() || '' }));
 
         // Verificar unicidad del slug y agregar sufijo si ya existe
         const existingSlug = await payload.find({
@@ -183,34 +298,57 @@ export async function createProject(formData: FormData): Promise<{ success: bool
 
         console.log('[createProject] Creating project with data:', {
             title, slug,
-            category: formData.get('category'),
+            category,
             status: formData.get('status'),
-            technologies: technologies.length,
+            technologies: technologyIds.length,
             creators: creators.length,
             links: links.length,
             hasImage: !!featuredImageId,
             galleryCount: gallery.length,
         });
 
-        await payload.create({
+        const projectResult = await payload.create({
             collection: 'projects',
             overrideAccess: true,
             data: {
                 title, slug,
-                category: formData.get('category') as string || 'Hardware',
+                category,
+                ...(startDate ? { startDate } : {}),
+                ...(endDate ? { endDate } : {}),
                 description: formData.get('description') as string,
                 year: parseInt(formData.get('year') as string) || new Date().getFullYear(),
                 featured: formData.get('featured') === 'true',
                 status: formData.get('status') as string || 'draft',
-                technologies, 
+                technologies: technologyIds, 
                 creators,
+                responsibleStaff,
+                externalStaff,
                 links,
+                beneficiaries,
                 practiceHoursEnabled,
                 ...(practiceHours && { practiceHours }),
                 ...(gallery.length > 0 && { gallery }),
                 ...(featuredImageId && { featuredImage: featuredImageId }),
             },
         });
+
+        // Create meetings in separate collection
+        const projectId = typeof projectResult.id === 'number' ? projectResult.id : parseInt(String(projectResult.id));
+        for (const meeting of meetings) {
+            if (!meeting.date) continue;
+            await payload.create({
+                collection: 'meetings',
+                overrideAccess: true,
+                data: {
+                    project: projectId,
+                    date: meeting.date,
+                    time: meeting.time || '09:00',
+                    description: meeting.description || '',
+                    status: meeting.status || 'programada',
+                    notes: meeting.notes || '',
+                },
+            });
+        }
 
         revalidatePath('/admin/content/projects');
         revalidatePath('/proyectos');
@@ -225,14 +363,48 @@ export async function createProject(formData: FormData): Promise<{ success: bool
 export async function updateProject(id: string, formData: FormData): Promise<{ success: boolean; error?: string }> {
     try {
         const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
 
-        const technologies = (formData.get('technologies') as string || '')
-            .split(',').map(t => ({ name: t.trim() })).filter(t => t.name);
+        const existingProject = await payload.findByID({
+            collection: 'projects',
+            id,
+            depth: 1,
+            overrideAccess: true,
+        });
+
+        if (!canManageProject(currentUser, existingProject)) {
+            return { success: false, error: 'No tienes permisos para editar este proyecto.' };
+        }
+
+        // Technologies as relationship IDs
+        const technologiesRaw = (formData.get('technologies') as string || '').split(',').map(t => t.trim()).filter(Boolean);
+        const technologyIds = technologiesRaw.map(t => parseInt(t, 10)).filter(id => !Number.isNaN(id));
 
         let rawCreators: any[] = [];
         let links: any[] = [];
+        let responsibleStaffRaw: string[] = [];
+        let externalStaffRaw: any[] = [];
+        let beneficiaries: any[] = [];
+        let meetings: any[] = [];
         try { rawCreators = JSON.parse(formData.get('creators') as string || '[]'); } catch { }
         try { links = JSON.parse(formData.get('links') as string || '[]'); } catch { }
+        try { responsibleStaffRaw = JSON.parse(formData.get('responsibleStaff') as string || '[]'); } catch { }
+        try { externalStaffRaw = JSON.parse(formData.get('externalStaff') as string || '[]'); } catch { }
+        try { beneficiaries = JSON.parse(formData.get('beneficiaries') as string || '[]'); } catch { }
+        try { meetings = JSON.parse(formData.get('meetings') as string || '[]'); } catch { }
+
+        if (!isAdmin(currentUser)) {
+            // Non-admin: check they're only using existing technology IDs, not adding new ones
+            const existingTechIds = new Set(
+                ((existingProject as any)?.technologies || []).map((t: any) =>
+                    typeof t === 'object' ? String(t.id) : String(t)
+                )
+            );
+            const isAddingNewTech = technologyIds.some((id) => !existingTechIds.has(String(id)));
+            if (isAddingNewTech) {
+                return { success: false, error: 'Solo el administrador puede asignar nuevas tecnologías.' };
+            }
+        }
 
         // Formatear creadores - Payload espera IDs numéricos para relaciones
         const creators = rawCreators.map(c => ({
@@ -278,17 +450,32 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
             } catch { practiceHours = {}; }
         }
 
+        const category = normalizeCategory((formData.get('category') as string) || 'proyectos-fisicos');
+        const startDate = (formData.get('startDate') as string) || undefined;
+        const endDate = (formData.get('endDate') as string) || undefined;
+        validateProjectPayload({ category, technologies: technologyIds, startDate, endDate, meetings });
+
+        const responsibleStaff = responsibleStaffRaw.map((staffId) => parseInt(String(staffId), 10)).filter((staffId) => !Number.isNaN(staffId));
+        const externalStaff = externalStaffRaw
+            .filter((s: any) => s.name?.trim())
+            .map((s: any) => ({ name: s.name.trim(), role: s.role?.trim() || '' }));
+
         let updateData: any = {
             title: formData.get('title') as string,
-            category: formData.get('category') as string,
+            category,
+            ...(startDate ? { startDate } : { startDate: null }),
+            ...(endDate ? { endDate } : { endDate: null }),
             description: formData.get('description') as string,
             year: parseInt(formData.get('year') as string) || new Date().getFullYear(),
             featured: formData.get('featured') === 'true',
             status: formData.get('status') as string || 'draft',
-            technologies, 
+            technologies: technologyIds, 
             creators, 
+            responsibleStaff,
+            externalStaff,
             links,
             gallery,
+            beneficiaries,
             practiceHoursEnabled,
             ...(practiceHours && { practiceHours }),
         };
@@ -310,6 +497,34 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
         }
 
         await payload.update({ collection: 'projects', id, data: updateData, overrideAccess: true });
+
+        // Sync meetings: delete existing and recreate from form data
+        const projectIdNum = parseInt(String(id), 10);
+        const existingMeetings = await payload.find({
+            collection: 'meetings',
+            where: { project: { equals: projectIdNum } },
+            limit: 200,
+            overrideAccess: true,
+        });
+        for (const existing of existingMeetings.docs) {
+            await payload.delete({ collection: 'meetings', id: existing.id, overrideAccess: true });
+        }
+        for (const meeting of meetings) {
+            if (!meeting.date) continue;
+            await payload.create({
+                collection: 'meetings',
+                overrideAccess: true,
+                data: {
+                    project: projectIdNum,
+                    date: meeting.date,
+                    time: meeting.time || '09:00',
+                    description: meeting.description || '',
+                    status: meeting.status || 'programada',
+                    notes: meeting.notes || '',
+                },
+            });
+        }
+
         revalidatePath('/admin/content/projects');
         revalidatePath('/proyectos');
         return { success: true };
@@ -323,6 +538,11 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
 export async function deleteProject(id: string): Promise<{ success: boolean; error?: string }> {
     try {
         const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        const project = await payload.findByID({ collection: 'projects', id, depth: 1, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para eliminar este proyecto.' };
+        }
         await payload.delete({ collection: 'projects', id, overrideAccess: true });
         revalidatePath('/admin/content/projects');
         revalidatePath('/proyectos');
@@ -335,7 +555,11 @@ export async function deleteProject(id: string): Promise<{ success: boolean; err
 export async function toggleProjectFeatured(id: string): Promise<{ success: boolean; error?: string }> {
     try {
         const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
         const project = await payload.findByID({ collection: 'projects', id, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para editar este proyecto.' };
+        }
         await payload.update({ collection: 'projects', id, data: { featured: !project.featured }, overrideAccess: true });
         revalidatePath('/admin/content/projects');
         revalidatePath('/proyectos');
@@ -349,6 +573,11 @@ export async function updateProjectStatus(id: string, status: 'draft' | 'publish
     try {
         console.log('[updateProjectStatus] Updating project', id, 'to status', status);
         const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        const project = await payload.findByID({ collection: 'projects', id, depth: 1, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para editar este proyecto.' };
+        }
         await payload.update({ collection: 'projects', id, data: { status }, overrideAccess: true });
         console.log('[updateProjectStatus] Update successful');
         revalidatePath('/admin/content/projects');
@@ -525,6 +754,151 @@ export async function exportProjectsToExcel(projectIds: string[], template: 'con
         return { success: true, data: base64, filename };
     } catch (error: any) {
         console.error('Error exporting to Excel:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ── Technologies helpers ──
+
+export async function getTechnologies(): Promise<Array<{ id: string; name: string; category: string }>> {
+    try {
+        const payload = await getPayload({ config });
+        const result = await payload.find({
+            collection: 'technologies',
+            sort: 'name',
+            limit: 200,
+            overrideAccess: true,
+        });
+        return result.docs.map((doc: any) => ({
+            id: String(doc.id),
+            name: doc.name,
+            category: doc.category || 'other',
+        }));
+    } catch (error) {
+        console.error('Error fetching technologies:', error);
+        return [];
+    }
+}
+
+export async function createTechnology(name: string, category: string = 'other'): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+        const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        if (!isAdmin(currentUser)) {
+            return { success: false, error: 'Solo el administrador puede crear tecnologías.' };
+        }
+        const doc = await payload.create({
+            collection: 'technologies',
+            overrideAccess: true,
+            data: { name, category },
+        });
+        return { success: true, id: String(doc.id) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// ── Meetings CRUD ──
+
+export async function getProjectMeetings(projectId: string): Promise<Array<{ id: string; date: string; time: string; description: string; status: string; notes: string }>> {
+    try {
+        const payload = await getPayload({ config });
+        const result = await payload.find({
+            collection: 'meetings',
+            where: { project: { equals: parseInt(projectId, 10) } },
+            sort: '-date',
+            limit: 100,
+            overrideAccess: true,
+        });
+        return result.docs.map((doc: any) => ({
+            id: String(doc.id),
+            date: doc.date,
+            time: doc.time || '',
+            description: doc.description || '',
+            status: doc.status || 'programada',
+            notes: doc.notes || '',
+        }));
+    } catch (error) {
+        console.error('Error fetching meetings:', error);
+        return [];
+    }
+}
+
+export async function createMeeting(projectId: string, data: {
+    date: string;
+    time: string;
+    description: string;
+    status?: string;
+    notes?: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        const project = await payload.findByID({ collection: 'projects', id: projectId, depth: 1, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para crear reuniones en este proyecto.' };
+        }
+
+        await payload.create({
+            collection: 'meetings',
+            overrideAccess: true,
+            data: {
+                project: parseInt(projectId, 10),
+                date: data.date,
+                time: data.time,
+                description: data.description,
+                status: data.status || 'programada',
+                notes: data.notes || '',
+            },
+        });
+
+        revalidatePath('/admin/content/projects');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateMeeting(meetingId: string, data: {
+    date?: string;
+    time?: string;
+    description?: string;
+    status?: string;
+    notes?: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        const meeting = await payload.findByID({ collection: 'meetings', id: meetingId, depth: 1, overrideAccess: true });
+        const projectId = typeof (meeting as any).project === 'object' ? (meeting as any).project.id : (meeting as any).project;
+        const project = await payload.findByID({ collection: 'projects', id: projectId, depth: 1, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para editar esta reunión.' };
+        }
+
+        await payload.update({ collection: 'meetings', id: meetingId, data, overrideAccess: true });
+        revalidatePath('/admin/content/projects');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteMeeting(meetingId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const payload = await getPayload({ config });
+        const currentUser = await getCurrentUser();
+        const meeting = await payload.findByID({ collection: 'meetings', id: meetingId, depth: 1, overrideAccess: true });
+        const projectId = typeof (meeting as any).project === 'object' ? (meeting as any).project.id : (meeting as any).project;
+        const project = await payload.findByID({ collection: 'projects', id: projectId, depth: 1, overrideAccess: true });
+        if (!canManageProject(currentUser, project)) {
+            return { success: false, error: 'No tienes permisos para eliminar esta reunión.' };
+        }
+
+        await payload.delete({ collection: 'meetings', id: meetingId, overrideAccess: true });
+        revalidatePath('/admin/content/projects');
+        return { success: true };
+    } catch (error: any) {
         return { success: false, error: error.message };
     }
 }

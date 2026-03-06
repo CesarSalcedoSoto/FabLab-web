@@ -69,6 +69,7 @@ export interface DashboardMetrics {
   equipmentInUse: number;
   lowStockItems: number;
   totalInventoryItems: number;
+  totalInventoryStock: number;
 
   // Almacenamiento
   storageUsed: number; // bytes
@@ -174,8 +175,7 @@ export async function getProjectsMetrics() {
   try {
     const payload = await getPayload({ config });
 
-    // El campo status usa 'draft' y 'published', no 'active'
-    // Consideramos 'published' como proyectos activos
+    // Proyectos publicados (activos)
     const { totalDocs: activeProjects } = await payload.find({
       collection: "projects",
       where: {
@@ -186,16 +186,24 @@ export async function getProjectsMetrics() {
       limit: 1,
     });
 
-    // TODO: Calcular tendencia comparando con mes anterior
-    // Por ahora usamos un valor basado en la cantidad de proyectos
-    const trend = activeProjects > 10 ? 12 : activeProjects > 5 ? 8 : 5;
+    // Calcular tendencia real: proyectos creados este mes
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { totalDocs: newThisMonth } = await payload.find({
+      collection: "projects",
+      where: {
+        createdAt: {
+          greater_than_equal: startOfMonth,
+        },
+      },
+      limit: 1,
+    });
 
     return {
       active: activeProjects,
-      trend,
+      trend: newThisMonth,
     };
   } catch (error) {
-    // Si la colección no existe, devolver 0
     console.error("[DashboardMetrics] Error obteniendo proyectos:", error);
     return {
       active: 0,
@@ -241,11 +249,19 @@ export async function getActiveProjects() {
 
 export async function getStorageMetrics(): Promise<StorageInfo> {
   try {
+    const payload = await getPayload({ config });
+
+    // Contar archivos reales desde la colección media de Payload
+    const { totalDocs: fileCount } = await payload.find({
+      collection: 'media',
+      limit: 0,
+      overrideAccess: true,
+    });
+
     // Directorio de medios (donde Payload guarda los archivos)
     const mediaDir = path.join(process.cwd(), "media");
 
     let totalSize = 0;
-    let fileCount = 0;
 
     // Calcular tamaño total de archivos en el directorio media
     try {
@@ -254,7 +270,6 @@ export async function getStorageMetrics(): Promise<StorageInfo> {
         try {
           const stats = await fs.stat(file);
           totalSize += stats.size;
-          fileCount++;
         } catch {
           // Ignorar archivos que no se pueden leer
         }
@@ -326,11 +341,15 @@ export async function getInventoryMetrics() {
     const equipDocs = equipResult.docs as any[];
     const invDocs = invResult.docs as any[];
 
+    // Sumar stock total real de todos los insumos
+    const totalStock = invDocs.reduce((sum: number, d: any) => sum + (Number(d.quantity) || 0), 0);
+
     return {
       total: equipDocs.length,
       inUse: equipDocs.filter(d => d.status === 'in-use').length,
       lowStock: invDocs.filter(d => d.status === 'low-stock' || d.status === 'out-of-stock').length,
       totalInventoryItems: invDocs.length,
+      totalInventoryStock: totalStock,
     };
   } catch (error) {
     console.error("[DashboardMetrics] Error obteniendo inventario local:", error);
@@ -535,7 +554,7 @@ function formatRelativeTime(date: Date): string {
 const DEFAULT_SPECIALISTS = { total: 0, active: 0, improvement: 0 };
 const DEFAULT_PROJECTS = { active: 0, trend: 0 };
 const DEFAULT_STORAGE = { used: 0, total: 500 * 1024 * 1024, files: 0, available: 500 * 1024 * 1024, usagePercent: 0 };
-const DEFAULT_INVENTORY = { total: 0, inUse: 0, lowStock: 0, totalInventoryItems: 0 };
+const DEFAULT_INVENTORY = { total: 0, inUse: 0, lowStock: 0, totalInventoryItems: 0, totalInventoryStock: 0 };
 const DEFAULT_ALERTS = { newContactMessages: 0, pendingSolicitudes: 0 };
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -581,6 +600,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     equipmentInUse: inventory.inUse,
     lowStockItems: inventory.lowStock,
     totalInventoryItems: inventory.totalInventoryItems,
+    totalInventoryStock: inventory.totalInventoryStock,
 
     // Almacenamiento
     storageUsed: storage.used,

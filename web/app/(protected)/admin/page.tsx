@@ -103,9 +103,19 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
               <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.activeProjects}</div>
               <div className="flex items-center text-xs text-green-600">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">+{metrics.projectsTrend}% vs. mes anterior</span>
-                <span className="sm:hidden">Activos</span>
+                {metrics.projectsTrend > 0 ? (
+                  <>
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">+{metrics.projectsTrend} nuevo{metrics.projectsTrend !== 1 ? 's' : ''} este mes</span>
+                    <span className="sm:hidden">+{metrics.projectsTrend} este mes</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">{metrics.activeProjects} publicado{metrics.activeProjects !== 1 ? 's' : ''} en total</span>
+                    <span className="sm:hidden">Publicados</span>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -146,13 +156,14 @@ export default async function AdminDashboardPage() {
                 {metrics.lowStockItems > 0 ? (
                   <>
                     <AlertCircle className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">{metrics.lowStockItems} con bajo stock</span>
+                    <span className="hidden sm:inline">{metrics.lowStockItems} con bajo stock · {metrics.totalInventoryStock} uds. total</span>
                     <span className="sm:hidden">{metrics.lowStockItems} bajo stock</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    <span>Stock adecuado</span>
+                    <span className="hidden sm:inline">{metrics.totalInventoryStock} unidades en stock</span>
+                    <span className="sm:hidden">{metrics.totalInventoryStock} uds.</span>
                   </>
                 )}
               </div>
@@ -250,8 +261,28 @@ export default async function AdminDashboardPage() {
           </Card>
         </Link>
 
+        {/* Reservas Salas */}
+        <Link href="/admin/reservas-salas">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <CardHeader className="p-3 sm:pb-2 sm:p-6">
+              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-teal-500" />
+                Reservas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-2xl sm:text-3xl font-bold mb-1">Salas</div>
+              <div className="flex items-center text-xs text-teal-600">
+                <Clock className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Reservar salas del FabLab</span>
+                <span className="sm:hidden">Reservar</span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Almacenamiento */}
-        <Link href="/admin/inventory">
+        <Link href="/admin/media">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardHeader className="p-3 sm:pb-2 sm:p-6">
               <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -261,45 +292,15 @@ export default async function AdminDashboardPage() {
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
               <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.storageFiles}</div>
-              <div className="hidden sm:block w-full bg-gray-200 rounded-full h-2 mt-1 mb-1">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    storageUsagePercent > 90 ? 'bg-red-500' : 
-                    storageUsagePercent > 70 ? 'bg-yellow-500' : 'bg-indigo-500'
-                  }`}
-                  style={{ width: `${storageUsagePercent}%` }}
-                ></div>
-              </div>
               <div className="flex items-center text-xs text-indigo-600">
                 <CloudUpload className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">{formatBytes(metrics.storageUsed)} de {formatBytes(metrics.storageTotal)}</span>
-                <span className="sm:hidden">{formatBytes(metrics.storageUsed)}</span>
+                <span className="hidden sm:inline">Imágenes y archivos subidos</span>
+                <span className="sm:hidden">Subidos</span>
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        {/* Actividad general */}
-        <Link href="/admin/equipment-usage">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardHeader className="p-3 sm:pb-2 sm:p-6">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-emerald-500" />
-                Actividad
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-2xl sm:text-3xl font-bold mb-1">
-                {metrics.activeProjects + metrics.activeSpecialists}
-              </div>
-              <div className="flex items-center text-xs text-emerald-600">
-                <Activity className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Proyectos + Especialistas activos</span>
-                <span className="sm:hidden">Activos</span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
       </div>
 
       {/* Proyectos Activos List */}

@@ -40,10 +40,19 @@ export default async function EquipoPageRoute() {
       email: doc.email || '',
       linkedin: doc.linkedin,
       github: doc.github,
-      twitter: undefined, // twitter not in Users schema
+      twitter: undefined,
     },
-    esDirectivo: doc.category === 'leadership', // derived
+    esDirectivo: doc.category === 'leadership',
     category: doc.category,
+    habilidadesPersonales: doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [],
+    dominioTecnico: doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [],
+    modalidad: doc.availabilityMode || undefined,
+    docenteResponsable: typeof doc.docenteResponsable === 'object' ? doc.docenteResponsable?.name : undefined,
+    disponibilidadSemanal: doc.weeklySchedule?.map((d: any) => ({
+      day: d.day,
+      enabled: d.active,
+      timeSlots: d.timeRanges?.map((r: any) => ({ start: r.start, end: r.end })) || [],
+    })) || [],
   }));
 
   const heroStats = pageData.heroStats?.map((s: any) => ({

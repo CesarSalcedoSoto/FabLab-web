@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/cards/card";
 import { Button } from "@/shared/ui/buttons/button";
 import { Input } from "@/shared/ui/inputs/input";
+import { DatePicker } from "@/shared/ui/inputs/date-picker";
 import { Badge } from "@/shared/ui/misc/badge";
 import { Label } from "@/shared/ui/labels/label";
 import { Textarea } from "@/shared/ui/inputs/textarea";
@@ -46,12 +47,15 @@ import {
     EyeOff,
     X,
     Link as LinkIcon,
+    ExternalLink,
     Users,
     User as UserIcon,
     ImagePlus,
     Clock,
+    Calendar,
     FileSpreadsheet,
     Download,
+    AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -64,8 +68,14 @@ import {
     toggleProjectFeatured,
     updateProjectStatus,
     exportProjectsToExcel,
+    getTechnologies,
+    createTechnology,
+    getProjectMeetings,
+    createMeeting,
+    updateMeeting,
+    deleteMeeting,
 } from "./actions";
-import type { ProjectData, GalleryImage, PracticeHoursData, PracticeHoursSpecialist, BidireccionEntry } from "./data";
+import type { ProjectData, GalleryImage, PracticeHoursData, PracticeHoursSpecialist, BidireccionEntry, ProjectBeneficiary, ProjectMeeting, ProjectTechnology, ExternalStaff } from "./data";
 
 interface LocalCreator { 
     teamMemberId?: string; 
@@ -93,10 +103,18 @@ interface TeamMemberOption {
     jobTitle?: string;
 }
 
+const PROJECT_CATEGORY_OPTIONS = [
+    { value: 'proyectos-fisicos', label: 'Proyectos físicos' },
+    { value: 'proyectos-digitales', label: 'Proyectos digitales' },
+    { value: 'diseno', label: 'Diseño' },
+    { value: 'animacion', label: 'Animación' },
+];
+
 export default function ProjectsAdminPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
     const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
+    const [availableTechnologies, setAvailableTechnologies] = useState<ProjectTechnology[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -130,27 +148,41 @@ export default function ProjectsAdminPage() {
     const [formData, setFormData] = useState({
         title: "",
         description: "",
-        category: "Hardware",
+        category: "proyectos-fisicos",
+        startDate: "",
+        endDate: "",
         year: new Date().getFullYear(),
         status: "draft" as "draft" | "published",
         featured: false,
         technologies: [] as string[],
         creators: [] as LocalCreator[],
+        responsibleStaff: [] as string[],
+        externalStaff: [] as ExternalStaff[],
         links: [] as LocalLink[],
+        beneficiaries: [] as ProjectBeneficiary[],
+        meetings: [] as ProjectMeeting[],
         image: null as File | null,
     });
     
     const [newTech, setNewTech] = useState("");
+    const [newTechCategory, setNewTechCategory] = useState("other");
+    const [selectedExistingTech, setSelectedExistingTech] = useState("");
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    const existingTechnologyOptions = availableTechnologies;
 
     const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [projects, members] = await Promise.all([
+            const [projects, members, techs] = await Promise.all([
                 getProjects(),
                 getTeamMembersForSelect(),
+                getTechnologies(),
             ]);
             setProjectsList(projects);
             setTeamMembers(members);
+            setAvailableTechnologies(techs);
         } catch (error) {
             console.error("Error cargando datos:", error);
             toast.error("Error al cargar datos");
@@ -176,16 +208,26 @@ export default function ProjectsAdminPage() {
         setFormData({
             title: "",
             description: "",
-            category: "Hardware",
+            category: "proyectos-fisicos",
+            startDate: "",
+            endDate: "",
             year: new Date().getFullYear(),
             status: "draft",
             featured: false,
             technologies: [],
             creators: [],
+            responsibleStaff: [],
+            externalStaff: [],
             links: [],
+            beneficiaries: [],
+            meetings: [],
             image: null,
         });
         setNewTech("");
+        setNewTechCategory("other");
+        setSelectedExistingTech("");
+        setFormErrors({});
+        setSaveError(null);
         setImagePreview(null);
         setGalleryItems([]);
         setPracticeHoursEnabled(false);
@@ -224,21 +266,41 @@ export default function ProjectsAdminPage() {
         }
     };
 
-    const handleAddTech = () => {
-        if (newTech.trim() && !formData.technologies.includes(newTech.trim())) {
+    const handleAddTech = async () => {
+        // Create a brand-new technology (admin-only), then add its ID
+        if (!newTech.trim()) return;
+        const result = await createTechnology(newTech.trim(), newTechCategory);
+        if (result.success && result.id) {
             setFormData({ 
                 ...formData, 
-                technologies: [...formData.technologies, newTech.trim()] 
+                technologies: [...formData.technologies, result.id] 
             });
+            setAvailableTechnologies(prev => [...prev, { id: result.id!, name: newTech.trim(), category: newTechCategory }]);
             setNewTech("");
+            setNewTechCategory("other");
+            toast.success(`Tecnología "${newTech.trim()}" creada`);
+        } else {
+            toast.error(result.error || "Error al crear tecnología");
         }
     };
 
-    const handleRemoveTech = (tech: string) => {
+    const handleRemoveTech = (techId: string) => {
         setFormData({
             ...formData,
-            technologies: formData.technologies.filter(t => t !== tech),
+            technologies: formData.technologies.filter(t => t !== techId),
         });
+    };
+
+    const handleAddExistingTech = () => {
+        if (!selectedExistingTech) return;
+        if (formData.technologies.includes(selectedExistingTech)) return;
+        setFormData({ ...formData, technologies: [...formData.technologies, selectedExistingTech] });
+        setSelectedExistingTech("");
+    };
+
+    const getTechName = (techId: string): string => {
+        const tech = availableTechnologies.find(t => t.id === techId);
+        return tech?.name || techId;
     };
 
     const handleAddCreator = (isTeamMember: boolean) => {
@@ -366,11 +428,87 @@ export default function ProjectsAdminPage() {
         });
     };
 
+    const handleAddBeneficiary = () => {
+        setFormData({
+            ...formData,
+            beneficiaries: [
+                ...formData.beneficiaries,
+                { tipoBeneficiario: '', rut: '', firstName: '', paternalLastName: '', maternalLastName: '', rol: '', horasDocente: undefined, horasEstudiante: undefined },
+            ],
+        });
+    };
+
+    const handleUpdateBeneficiary = (index: number, field: keyof ProjectBeneficiary, value: string | number | undefined) => {
+        const next = [...formData.beneficiaries];
+        next[index] = { ...next[index], [field]: value };
+        setFormData({ ...formData, beneficiaries: next });
+    };
+
+    const handleRemoveBeneficiary = (index: number) => {
+        setFormData({ ...formData, beneficiaries: formData.beneficiaries.filter((_, i) => i !== index) });
+    };
+
+    const handleAddMeeting = () => {
+        setFormData({
+            ...formData,
+            meetings: [...formData.meetings, { date: '', time: '09:00', description: '', status: 'programada' }],
+        });
+    };
+
+    const handleUpdateMeeting = (index: number, field: keyof ProjectMeeting, value: string) => {
+        const next = [...formData.meetings];
+        next[index] = { ...next[index], [field]: value } as ProjectMeeting;
+        setFormData({ ...formData, meetings: next });
+    };
+
+    const handleRemoveMeeting = (index: number) => {
+        setFormData({ ...formData, meetings: formData.meetings.filter((_, i) => i !== index) });
+    };
+
+    const validateProjectForm = (): Record<string, string> => {
+        const errors: Record<string, string> = {};
+
+        if (!formData.title.trim()) {
+            errors.title = 'El título es obligatorio.';
+        }
+        if (!formData.description.trim()) {
+            errors.description = 'La descripción es obligatoria.';
+        }
+
+        if (formData.startDate && formData.endDate && new Date(formData.endDate).getTime() < new Date(formData.startDate).getTime()) {
+            errors.endDate = 'Fecha de cierre no puede ser anterior a fecha de inicio.';
+        }
+
+        if (formData.category === 'proyectos-digitales' && formData.technologies.length === 0) {
+            errors.technologies = 'Proyectos digitales deben tener al menos una tecnología.';
+        }
+
+        const now = new Date();
+        for (let i = 0; i < formData.meetings.length; i++) {
+            const meeting = formData.meetings[i];
+            if (meeting.status !== 'programada' || !meeting.date || !meeting.time) continue;
+            const [h, m] = meeting.time.split(':').map(Number);
+            if (Number.isNaN(h) || Number.isNaN(m)) {
+                errors[`meeting_${i}`] = `Reunión ${i + 1}: hora inválida, usa formato HH:mm.`;
+                continue;
+            }
+            // Parse date parts to avoid UTC-vs-local timezone issues
+            const dateParts = meeting.date.slice(0, 10).split('-').map(Number);
+            const meetingDateTime = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], h, m, 0, 0);
+            if (meetingDateTime.getTime() < now.getTime()) {
+                errors[`meeting_${i}`] = `Reunión ${i + 1}: no puede estar en fecha/hora pasada.`;
+            }
+        }
+        return errors;
+    };
+
     const buildFormData = (): FormData => {
         const form = new FormData();
         form.append('title', formData.title);
         form.append('description', formData.description);
         form.append('category', formData.category);
+        form.append('startDate', formData.startDate || '');
+        form.append('endDate', formData.endDate || '');
         form.append('year', String(formData.year));
         form.append('status', formData.status);
         form.append('featured', String(formData.featured));
@@ -381,6 +519,10 @@ export default function ProjectsAdminPage() {
             role: c.role,
         }))));
         form.append('links', JSON.stringify(formData.links));
+        form.append('responsibleStaff', JSON.stringify(formData.responsibleStaff));
+        form.append('externalStaff', JSON.stringify(formData.externalStaff));
+        form.append('beneficiaries', JSON.stringify(formData.beneficiaries));
+        form.append('meetings', JSON.stringify(formData.meetings));
         
         // Horas de práctica
         form.append('practiceHoursEnabled', String(practiceHoursEnabled));
@@ -405,8 +547,11 @@ export default function ProjectsAdminPage() {
     };
 
     const handleAddProject = async () => {
-        if (!formData.title || !formData.description) {
-            toast.error("Título y descripción son requeridos");
+        setSaveError(null);
+        const errors = validateProjectForm();
+        setFormErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            toast.error('Corrige los errores antes de guardar.');
             return;
         }
 
@@ -420,23 +565,33 @@ export default function ProjectsAdminPage() {
                 setIsAddDialogOpen(false);
                 setIsSuccessDialogOpen(true);
                 resetForm();
+                setFormErrors({});
+                setSaveError(null);
                 loadData();
             } else {
-                toast.error(result.error || "Error al crear proyecto");
+                const msg = result.error || 'Error al crear proyecto';
+                setSaveError(msg);
+                toast.error(msg);
             }
-        } catch (error) {
-            console.error("Error creando proyecto:", error);
-            toast.error("Error al crear proyecto");
+        } catch (error: any) {
+            console.error('Error creando proyecto:', error);
+            const msg = error?.message || 'Error inesperado al crear proyecto';
+            setSaveError(msg);
+            toast.error(msg);
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleEditProject = async () => {
-        if (!selectedProject || !formData.title) {
-            toast.error("Título es requerido");
+        setSaveError(null);
+        const errors = validateProjectForm();
+        setFormErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            toast.error('Corrige los errores antes de guardar.');
             return;
         }
+        if (!selectedProject) return;
 
         try {
             setIsSaving(true);
@@ -447,14 +602,20 @@ export default function ProjectsAdminPage() {
                 setIsEditDialogOpen(false);
                 setSelectedProject(null);
                 resetForm();
-                toast.success("Proyecto actualizado correctamente");
+                setFormErrors({});
+                setSaveError(null);
+                toast.success('Proyecto actualizado correctamente');
                 loadData();
             } else {
-                toast.error(result.error || "Error al actualizar proyecto");
+                const msg = result.error || 'Error al actualizar proyecto';
+                setSaveError(msg);
+                toast.error(msg);
             }
-        } catch (error) {
-            console.error("Error actualizando proyecto:", error);
-            toast.error("Error al actualizar proyecto");
+        } catch (error: any) {
+            console.error('Error actualizando proyecto:', error);
+            const msg = error?.message || 'Error inesperado al actualizar proyecto';
+            setSaveError(msg);
+            toast.error(msg);
         } finally {
             setIsSaving(false);
         }
@@ -504,23 +665,33 @@ export default function ProjectsAdminPage() {
         }
     };
 
-    const openEditDialog = (project: ProjectData) => {
+    const openEditDialog = async (project: ProjectData) => {
         setSelectedProject(project);
+        
+        // Load meetings from the meetings collection
+        const projectMeetings = await getProjectMeetings(project.id);
+        
         setFormData({
             title: project.title,
             description: project.description,
             category: project.category,
+            startDate: project.startDate || '',
+            endDate: project.endDate || '',
             year: project.year,
             status: project.status as "draft" | "published",
             featured: project.featured,
-            technologies: project.technologies,
+            technologies: project.technologies.map(t => t.id),
             creators: project.creators.map(c => ({
                 teamMemberId: c.teamMemberId,
                 teamMemberName: c.teamMemberName,
                 externalName: c.externalName,
                 role: c.role,
             })),
+            responsibleStaff: project.responsibleStaff || [],
+            externalStaff: project.externalStaff || [],
             links: project.links,
+            beneficiaries: project.beneficiaries || [],
+            meetings: projectMeetings,
             image: null,
         });
         setImagePreview(project.featuredImage || null);
@@ -602,12 +773,22 @@ export default function ProjectsAdminPage() {
 
     const getCategoryColor = (cat: string) => {
         const colors: Record<string, string> = {
-            'Hardware': 'bg-blue-100 text-blue-700',
-            'Software': 'bg-green-100 text-green-700',
-            'Diseño': 'bg-purple-100 text-purple-700',
-            'IoT': 'bg-orange-100 text-orange-700',
+            'proyectos-fisicos': 'bg-blue-100 text-blue-700',
+            'proyectos-digitales': 'bg-green-100 text-green-700',
+            'diseno': 'bg-purple-100 text-purple-700',
+            'animacion': 'bg-orange-100 text-orange-700',
         };
         return colors[cat] || 'bg-gray-100 text-gray-700';
+    };
+
+    const getCategoryLabel = (cat: string) => {
+        const labels: Record<string, string> = {
+            'proyectos-fisicos': 'Proyectos físicos',
+            'proyectos-digitales': 'Proyectos digitales',
+            'diseno': 'Diseño',
+            'animacion': 'Animación',
+        };
+        return labels[cat] || cat;
     };
 
     const renderFormContent = () => (
@@ -637,26 +818,36 @@ export default function ProjectsAdminPage() {
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="title">Título *</Label>
-                    <Input id="title" placeholder="Nombre del proyecto" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+                    <Input id="title" placeholder="Nombre del proyecto" value={formData.title} onChange={(e) => { setFormData({ ...formData, title: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.title; return n; }); }} className={formErrors.title ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    {formErrors.title && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{formErrors.title}</p>}
                 </div>
                 <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="description">Descripción *</Label>
-                    <Textarea id="description" placeholder="Describe brevemente el proyecto..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
+                    <Textarea id="description" placeholder="Describe brevemente el proyecto..." value={formData.description} onChange={(e) => { setFormData({ ...formData, description: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.description; return n; }); }} rows={3} className={formErrors.description ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    {formErrors.description && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{formErrors.description}</p>}
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
                 <div className="space-y-2">
                     <Label>Categoría *</Label>
                     <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Hardware">Hardware</SelectItem>
-                            <SelectItem value="Software">Software</SelectItem>
-                            <SelectItem value="Diseño">Diseño</SelectItem>
-                            <SelectItem value="IoT">IoT</SelectItem>
+                            {PROJECT_CATEGORY_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="startDate">Fecha inicio</Label>
+                    <DatePicker id="startDate" value={formData.startDate} onChange={(date) => setFormData({ ...formData, startDate: date })} placeholder="Seleccionar inicio" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="endDate">Fecha cierre</Label>
+                    <DatePicker id="endDate" value={formData.endDate} onChange={(date) => { setFormData({ ...formData, endDate: date }); setFormErrors(prev => { const n = { ...prev }; delete n.endDate; return n; }); }} placeholder="Seleccionar cierre" />
+                    {formErrors.endDate && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{formErrors.endDate}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="year">Año</Label>
@@ -688,15 +879,45 @@ export default function ProjectsAdminPage() {
             <div className="space-y-2">
                 <Label>Tecnologías utilizadas</Label>
                 <div className="flex gap-2">
-                    <Input value={newTech} onChange={(e) => setNewTech(e.target.value)} placeholder="Arduino, Python, React..." onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTech())} />
+                    <Select value={selectedExistingTech || 'none'} onValueChange={(value) => setSelectedExistingTech(value === 'none' ? '' : value)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tecnología del catálogo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">Seleccionar tecnología</SelectItem>
+                            {existingTechnologyOptions
+                                .filter(t => !formData.technologies.includes(t.id))
+                                .map((tech) => (
+                                <SelectItem key={tech.id} value={tech.id}>{tech.name} ({tech.category})</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={handleAddExistingTech}>Agregar</Button>
+                </div>
+                <div className="flex gap-2">
+                    <Input value={newTech} onChange={(e) => setNewTech(e.target.value)} placeholder="Crear nueva tecnología..." onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTech())} className="flex-1" />
+                    <Select value={newTechCategory} onValueChange={setNewTechCategory}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="hardware">Hardware</SelectItem>
+                            <SelectItem value="software">Software</SelectItem>
+                            <SelectItem value="design">Diseño</SelectItem>
+                            <SelectItem value="fabrication">Fabricación</SelectItem>
+                            <SelectItem value="other">Otro</SelectItem>
+                        </SelectContent>
+                    </Select>
                     <Button type="button" variant="outline" onClick={handleAddTech}><Plus className="h-4 w-4" /></Button>
                 </div>
+                <p className="text-xs text-gray-500">Selecciona del catálogo o crea una nueva (solo admin)</p>
+                {formErrors.technologies && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{formErrors.technologies}</p>}
                 {formData.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.technologies.map((tech) => (
-                            <span key={tech} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm">
-                                {tech}
-                                <button type="button" onClick={() => handleRemoveTech(tech)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                        {formData.technologies.map((techId) => (
+                            <span key={techId} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm">
+                                {getTechName(techId)}
+                                <button type="button" onClick={() => handleRemoveTech(techId)} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
                             </span>
                         ))}
                     </div>
@@ -746,6 +967,91 @@ export default function ProjectsAdminPage() {
                 )}
             </div>
 
+            <div className="space-y-3">
+                <Label>Personal responsable</Label>
+                <p className="text-xs text-gray-500">Solo este personal y administrador pueden editar proyecto y reuniones.</p>
+
+                {/* Usuarios registrados */}
+                <div className="space-y-1">
+                    <p className="text-xs font-medium text-gray-600 flex items-center gap-1"><Users className="h-3 w-3" /> Usuarios registrados</p>
+                    <div className="grid gap-2 md:grid-cols-2">
+                        {teamMembers.map((member) => {
+                            const checked = formData.responsibleStaff.includes(member.id);
+                            return (
+                                <label key={member.id} className="flex items-center gap-2 rounded border p-2 text-sm cursor-pointer hover:bg-gray-50">
+                                    <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                            const next = e.target.checked
+                                                ? [...formData.responsibleStaff, member.id]
+                                                : formData.responsibleStaff.filter((id) => id !== member.id);
+                                            setFormData({ ...formData, responsibleStaff: next });
+                                        }}
+                                    />
+                                    <span>{member.name}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Personas externas (no registradas) */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-600 flex items-center gap-1"><UserIcon className="h-3 w-3" /> Personal responsable no registrado</p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFormData({ ...formData, externalStaff: [...formData.externalStaff, { name: '', role: '' }] })}
+                            className="gap-1"
+                        >
+                            <Plus className="h-3 w-3" /> Agregar
+                        </Button>
+                    </div>
+                    {formData.externalStaff.length > 0 ? (
+                        <div className="space-y-2">
+                            {formData.externalStaff.map((ext, idx) => (
+                                <div key={idx} className="flex gap-2 items-center p-2 bg-gray-50 rounded-lg">
+                                    <Input
+                                        placeholder="Nombre completo"
+                                        value={ext.name}
+                                        onChange={(e) => {
+                                            const updated = [...formData.externalStaff];
+                                            updated[idx] = { ...updated[idx], name: e.target.value };
+                                            setFormData({ ...formData, externalStaff: updated });
+                                        }}
+                                        className="flex-1"
+                                    />
+                                    <Input
+                                        placeholder="Rol / Cargo"
+                                        value={ext.role || ''}
+                                        onChange={(e) => {
+                                            const updated = [...formData.externalStaff];
+                                            updated[idx] = { ...updated[idx], role: e.target.value };
+                                            setFormData({ ...formData, externalStaff: updated });
+                                        }}
+                                        className="w-40"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFormData({ ...formData, externalStaff: formData.externalStaff.filter((_, i) => i !== idx) })}
+                                        className="text-red-500 hover:text-red-600"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-400 text-center py-2 border border-dashed rounded-lg">Sin personal externo</p>
+                    )}
+                </div>
+            </div>
+
             <div className="space-y-2">
                 <Label className="flex items-center gap-2"><LinkIcon className="h-4 w-4" />Enlaces (repositorio, video, demo)</Label>
                 <Button type="button" variant="outline" size="sm" onClick={handleAddLink} className="gap-1 mb-2"><Plus className="h-3 w-3" /> Agregar enlace</Button>
@@ -755,7 +1061,67 @@ export default function ProjectsAdminPage() {
                             <div key={index} className="flex gap-2 items-center">
                                 <Input value={link.label} onChange={(e) => handleUpdateLink(index, 'label', e.target.value)} placeholder="Nombre (ej: GitHub)" className="w-32" />
                                 <Input value={link.url} onChange={(e) => handleUpdateLink(index, 'url', e.target.value)} placeholder="https://..." className="flex-1" />
+                                {link.url && <a href={link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors" title="Abrir enlace"><ExternalLink className="h-4 w-4 text-gray-600" /></a>}
                                 <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveLink(index)} className="text-red-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {!practiceHoursEnabled && (<div className="space-y-3 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Beneficiarios (bidireccional)</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddBeneficiary}><Plus className="h-3 w-3 mr-1" />Agregar</Button>
+                </div>
+                {formData.beneficiaries.length === 0 ? (
+                    <p className="text-sm text-gray-500">Sin beneficiarios registrados.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {formData.beneficiaries.map((beneficiary, index) => (
+                            <div key={index} className="rounded border p-2 space-y-2">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                    <Input placeholder="Tipo beneficiario" value={beneficiary.tipoBeneficiario} onChange={(e) => handleUpdateBeneficiary(index, 'tipoBeneficiario', e.target.value)} />
+                                    <Input placeholder="RUT" value={beneficiary.rut} onChange={(e) => handleUpdateBeneficiary(index, 'rut', e.target.value)} />
+                                    <Input placeholder="Rol" value={beneficiary.rol} onChange={(e) => handleUpdateBeneficiary(index, 'rol', e.target.value)} />
+                                    <Input placeholder="Nombres" value={beneficiary.firstName} onChange={(e) => handleUpdateBeneficiary(index, 'firstName', e.target.value)} />
+                                    <Input placeholder="Apellido paterno" value={beneficiary.paternalLastName} onChange={(e) => handleUpdateBeneficiary(index, 'paternalLastName', e.target.value)} />
+                                    <Input placeholder="Apellido materno" value={beneficiary.maternalLastName || ''} onChange={(e) => handleUpdateBeneficiary(index, 'maternalLastName', e.target.value)} />
+                                </div>
+                                <div className="flex justify-end">
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveBeneficiary(index)} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>)}
+
+            <div className="space-y-3 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                    <Label className="font-semibold flex items-center gap-2"><Calendar className="h-4 w-4" />Reuniones</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddMeeting}><Plus className="h-3 w-3 mr-1" />Agendar reunión</Button>
+                </div>
+                {formData.meetings.length === 0 ? (
+                    <p className="text-sm text-gray-500">No hay reuniones agendadas.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {formData.meetings.map((meeting, index) => (
+                            <div key={index} className="rounded border p-2 space-y-2">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                    <DatePicker value={meeting.date} onChange={(date) => handleUpdateMeeting(index, 'date', date)} placeholder="Fecha" />
+                                    <Input type="time" value={meeting.time} onChange={(e) => handleUpdateMeeting(index, 'time', e.target.value)} />
+                                    <Select value={meeting.status} onValueChange={(value) => handleUpdateMeeting(index, 'status', value)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="programada">Programada</SelectItem>
+                                            <SelectItem value="cancelada">Cancelada</SelectItem>
+                                            <SelectItem value="realizada">Realizada</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveMeeting(index)} className="text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                                </div>
+                                <Textarea value={meeting.description} onChange={(e) => handleUpdateMeeting(index, 'description', e.target.value)} placeholder="Descripción de la reunión" rows={2} />
                             </div>
                         ))}
                     </div>
@@ -1217,7 +1583,7 @@ export default function ProjectsAdminPage() {
                                         <TableCell>
                                             <div><p className="font-medium">{project.title}</p><p className="text-xs text-gray-500 line-clamp-1">{project.description}</p></div>
                                         </TableCell>
-                                        <TableCell><Badge className={getCategoryColor(project.category)}>{project.category}</Badge></TableCell>
+                                        <TableCell><Badge className={getCategoryColor(project.category)}>{getCategoryLabel(project.category)}</Badge></TableCell>
                                         <TableCell className="text-gray-600">{project.year}</TableCell>
                                         <TableCell>
                                             {project.creators.length > 0 ? (
@@ -1263,12 +1629,21 @@ export default function ProjectsAdminPage() {
             </Card>
 
             <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
-                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2"><FolderTree className="h-5 w-5 text-orange-500" />Nuevo Proyecto</DialogTitle>
                         <DialogDescription>Completa la información del proyecto</DialogDescription>
                     </DialogHeader>
                     {renderFormContent()}
+                    {(Object.keys(formErrors).length > 0 || saveError) && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
+                            <p className="text-sm font-medium text-red-800 flex items-center gap-2"><AlertCircle className="h-4 w-4" />Errores en el formulario</p>
+                            {Object.values(formErrors).map((err, i) => (
+                                <p key={i} className="text-xs text-red-600 ml-6">• {err}</p>
+                            ))}
+                            {saveError && <p className="text-xs text-red-600 ml-6 font-medium">• Servidor: {saveError}</p>}
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
                         <Button onClick={handleAddProject} disabled={isSaving} className="bg-orange-500 hover:bg-orange-600">
@@ -1279,9 +1654,18 @@ export default function ProjectsAdminPage() {
             </Dialog>
 
             <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) { setSelectedProject(null); resetForm(); } }}>
-                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5 text-orange-500" />Editar Proyecto</DialogTitle></DialogHeader>
                     {renderFormContent()}
+                    {(Object.keys(formErrors).length > 0 || saveError) && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
+                            <p className="text-sm font-medium text-red-800 flex items-center gap-2"><AlertCircle className="h-4 w-4" />Errores en el formulario</p>
+                            {Object.values(formErrors).map((err, i) => (
+                                <p key={i} className="text-xs text-red-600 ml-6">• {err}</p>
+                            ))}
+                            {saveError && <p className="text-xs text-red-600 ml-6 font-medium">• Servidor: {saveError}</p>}
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
                         <Button onClick={handleEditProject} disabled={isSaving} className="bg-orange-500 hover:bg-orange-600">

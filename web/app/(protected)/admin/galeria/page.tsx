@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/cards/card";
 import { Button } from "@/shared/ui/buttons/button";
 import { Badge } from "@/shared/ui/badges/badge";
@@ -11,7 +11,7 @@ import {
 } from "@/shared/ui/misc/alert-dialog";
 import {
   Plus, Search, Pencil, Trash2, Eye, EyeOff,
-  ImageIcon, Loader2, AlertCircle, Star
+  ImageIcon, Loader2, AlertCircle, Star, Upload, X
 } from "lucide-react";
 import Image from "next/image";
 import { getAllGallery, deleteGalleryItem, updateGalleryItem, createGalleryItem, type GalleryItem } from "./actions";
@@ -44,6 +44,12 @@ export default function GaleriaAdminPage() {
     featured: false,
     status: "draft",
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingImageId, setExistingImageId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadItems = async () => {
     setLoading(true);
@@ -67,6 +73,9 @@ export default function GaleriaAdminPage() {
   const handleNuevo = () => {
     setEditando(null);
     setForm({ title: "", description: "", album: "", date: "", featured: false, status: "draft" });
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImageId(null);
     setVista("formulario");
   };
 
@@ -80,8 +89,63 @@ export default function GaleriaAdminPage() {
       featured: item.featured || false,
       status: item.status,
     });
+    setImageFile(null);
+    setImagePreview(item.image?.url || null);
+    setExistingImageId(item.image?.id || null);
     setVista("formulario");
   };
+
+  const uploadImage = async (file: File): Promise<number> => {
+    const formData = new FormData();
+    const altText = file.name.replace(/\.[^/.]+$/, "");
+    formData.append("file", file);
+    formData.append("_payload", JSON.stringify({ alt: altText }));
+
+    const res = await fetch("/api/payload/media", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(message || "Error subiendo imagen");
+    }
+
+    const data = await res.json();
+    return data.doc.id;
+  };
+
+  const handleFileSelect = (file: File) => {
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      setError("Tipo de archivo no permitido. Usa: JPG, PNG, WebP, GIF");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("La imagen es muy grande. Máximo 10MB");
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  }, []);
 
   const handleGuardar = async () => {
     setSaving(true);
@@ -90,6 +154,16 @@ export default function GaleriaAdminPage() {
       const data: any = { ...form };
       if (data.date) data.date = new Date(data.date).toISOString();
       else delete data.date;
+
+      // Upload image if there's a new file
+      if (imageFile) {
+        setUploading(true);
+        const mediaId = await uploadImage(imageFile);
+        setUploading(false);
+        data.image = mediaId;
+      } else if (existingImageId) {
+        data.image = existingImageId;
+      }
 
       if (editando) {
         const res = await updateGalleryItem(editando.id, data);
@@ -180,14 +254,91 @@ export default function GaleriaAdminPage() {
               Imagen destacada
             </label>
 
-            <p className="text-xs text-muted-foreground">
-              Nota: Para subir la imagen, usa el CMS de Payload en /cms → Galería y vincula el archivo de medios.
-            </p>
+            {/* Imagen Upload */}
+            <div>
+              <label className="text-sm font-medium">Imagen *</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                  e.target.value = "";
+                }}
+              />
+              {imagePreview ? (
+                <div className="relative mt-2 rounded-lg overflow-hidden border bg-gray-50">
+                  <div className="relative aspect-video">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview"
+                      fill
+                      className="object-contain"
+                      unoptimized={imagePreview.startsWith("blob:")}
+                    />
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 w-8 p-0"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                        setExistingImageId(null);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {imageFile && (
+                    <div className="px-3 py-2 bg-blue-50 border-t text-xs text-blue-700 flex items-center gap-1.5">
+                      <Upload className="h-3.5 w-3.5" />
+                      Nueva imagen: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(1)}MB)
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`mt-2 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragging
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-300 hover:border-primary/50 hover:bg-gray-50"
+                  }`}
+                >
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">Arrastra una imagen o haz clic para seleccionar</p>
+                  <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP, GIF — Máx. 10MB</p>
+                </div>
+              )}
+              {uploading && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Subiendo imagen...
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="outline" onClick={() => setVista("lista")}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving || !form.title}>
-                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : "Guardar"}
+              <Button onClick={handleGuardar} disabled={saving || uploading || !form.title}>
+                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{uploading ? "Subiendo imagen..." : "Guardando..."}</> : "Guardar"}
               </Button>
             </div>
           </CardContent>

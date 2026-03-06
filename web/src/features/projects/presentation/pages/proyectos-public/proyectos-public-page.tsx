@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { Search, Cpu, Code, Palette, Radio, ExternalLink, X, ChevronRight, ChevronLeft, ImageIcon } from "lucide-react";
+import { Search, Wrench, Monitor, Palette, Film, ExternalLink, X, ChevronRight, ChevronLeft, ImageIcon, Cpu } from "lucide-react";
 import { motion as framerMotion } from "framer-motion";
 import { Input } from "@/shared/ui/inputs/input";
 import { Button } from "@/shared/ui/buttons/button";
@@ -41,10 +41,10 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
 
     const categories = [
         { value: null, label: 'Todos', icon: null },
-        { value: 'Hardware', label: 'Hardware', icon: Cpu },
-        { value: 'Software', label: 'Software', icon: Code },
-        { value: 'Diseño', label: 'Diseño', icon: Palette },
-        { value: 'IoT', label: 'IoT', icon: Radio },
+        { value: 'proyectos-fisicos', label: 'Proyectos Físicos', icon: Wrench },
+        { value: 'proyectos-digitales', label: 'Proyectos Digitales', icon: Monitor },
+        { value: 'diseno', label: 'Diseño', icon: Palette },
+        { value: 'animacion', label: 'Animación', icon: Film },
     ];
 
     return (
@@ -444,7 +444,7 @@ export function ProyectosPublicPage({ projects, featuredProjects = [] }: Proyect
                                         {selectedProject.links.map((link, idx) => (
                                             <a 
                                                 key={idx} 
-                                                href={link.url} 
+                                                href={link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-gray-900/50 transition-all"

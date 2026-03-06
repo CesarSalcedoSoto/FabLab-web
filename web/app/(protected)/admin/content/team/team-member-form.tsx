@@ -14,6 +14,7 @@ import {
 } from "@/shared/ui/misc/sheet";
 import { createTeamMember, updateTeamMember } from "./actions";
 import { ImagePositionEditor } from "./image-position-editor";
+import { WeeklyScheduleEditor, type DaySchedule } from "./weekly-schedule-editor";
 import { toast } from "sonner";
 import {
     Loader2,
@@ -30,7 +31,10 @@ import {
     Camera,
     CheckCircle2,
     AlertCircle,
-    Move
+    Move,
+    MapPin,
+    Monitor,
+    Building2,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -74,6 +78,30 @@ const EDUCATION_STATUS_OPTIONS = [
     { value: 'doctorate', label: 'Doctorado' },
 ];
 
+const AVAILABILITY_MODE_OPTIONS = [
+    {
+        value: 'presencial',
+        label: 'Presencial',
+        description: 'Trabaja en las instalaciones',
+        icon: Building2,
+        color: 'text-green-600 bg-green-50 border-green-200',
+    },
+    {
+        value: 'remoto',
+        label: 'Remoto',
+        description: 'Trabaja a distancia',
+        icon: Monitor,
+        color: 'text-blue-600 bg-blue-50 border-blue-200',
+    },
+    {
+        value: 'hibrido',
+        label: 'Híbrido',
+        description: 'Combina presencial y remoto',
+        icon: MapPin,
+        color: 'text-purple-600 bg-purple-50 border-purple-200',
+    },
+];
+
 const getObjectPosition = (position: string) => {
     if (!position) return '50% 50%';
     if (position.includes('%')) return position;
@@ -97,6 +125,12 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
     const [selectedCategory, setSelectedCategory] = useState<string>('specialist');
     const [selectedEducationStatus, setSelectedEducationStatus] = useState<string>('graduated');
     const [selectedImagePosition, setSelectedImagePosition] = useState<string>('50% 50%');
+    const [selectedAvailabilityMode, setSelectedAvailabilityMode] = useState<string>('');
+    const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>([]);
+    const [personalSkills, setPersonalSkills] = useState<string[]>([]);
+    const [technicalDomain, setTechnicalDomain] = useState<string[]>([]);
+    const [skillInput, setSkillInput] = useState('');
+    const [domainInput, setDomainInput] = useState('');
     const [isPositionEditorOpen, setIsPositionEditorOpen] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,12 +141,22 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
             setSelectedCategory(member.category || 'specialist');
             setSelectedEducationStatus(member.educationStatus || 'graduated');
             setSelectedImagePosition(member.imagePosition || '50% 50%');
+            setSelectedAvailabilityMode(member.availabilityMode || '');
+            setWeeklySchedule(member.weeklySchedule || []);
+            setPersonalSkills(member.personalSkills || []);
+            setTechnicalDomain(member.technicalDomain || []);
         } else {
             setImagePreview(null);
             setSelectedCategory('specialist');
             setSelectedEducationStatus('graduated');
             setSelectedImagePosition('50% 50%');
+            setSelectedAvailabilityMode('');
+            setWeeklySchedule([]);
+            setPersonalSkills([]);
+            setTechnicalDomain([]);
         }
+        setSkillInput('');
+        setDomainInput('');
         setFormErrors({});
     }, [member, isOpen]);
 
@@ -145,6 +189,12 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
             toast.error('Por favor completa los campos requeridos');
             return;
         }
+
+        // Append structured data as JSON
+        formData.set('personalSkills', JSON.stringify(personalSkills));
+        formData.set('technicalDomain', JSON.stringify(technicalDomain));
+        formData.set('weeklySchedule', JSON.stringify(weeklySchedule));
+        formData.set('availabilityMode', selectedAvailabilityMode);
 
         setLoading(true);
 
@@ -450,6 +500,158 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
                                 </div>
                             </div>
 
+                            {/* Habilidades Personales */}
+                            <div className="space-y-3 pt-6 border-t border-gray-100">
+                                <Label className="text-sm font-semibold text-gray-700">Habilidades Personales</Label>
+                                <div className="flex flex-wrap gap-2 min-h-[2rem]">
+                                    {personalSkills.map((skill, i) => (
+                                        <span
+                                            key={i}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200"
+                                        >
+                                            {skill}
+                                            <button
+                                                type="button"
+                                                onClick={() => setPersonalSkills(prev => prev.filter((_, idx) => idx !== i))}
+                                                className="ml-0.5 hover:text-red-500"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={skillInput}
+                                        onChange={(e) => setSkillInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && skillInput.trim()) {
+                                                e.preventDefault();
+                                                setPersonalSkills(prev => [...prev, skillInput.trim()]);
+                                                setSkillInput('');
+                                            }
+                                        }}
+                                        placeholder="Ej: Trabajo en equipo, Liderazgo..."
+                                        className="h-9 text-sm"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!skillInput.trim()}
+                                        onClick={() => {
+                                            if (skillInput.trim()) {
+                                                setPersonalSkills(prev => [...prev, skillInput.trim()]);
+                                                setSkillInput('');
+                                            }
+                                        }}
+                                        className="shrink-0"
+                                    >
+                                        Agregar
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Dominio Técnico */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-semibold text-gray-700">Dominio Técnico</Label>
+                                <div className="flex flex-wrap gap-2 min-h-[2rem]">
+                                    {technicalDomain.map((domain, i) => (
+                                        <span
+                                            key={i}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                                        >
+                                            {domain}
+                                            <button
+                                                type="button"
+                                                onClick={() => setTechnicalDomain(prev => prev.filter((_, idx) => idx !== i))}
+                                                className="ml-0.5 hover:text-red-500"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={domainInput}
+                                        onChange={(e) => setDomainInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && domainInput.trim()) {
+                                                e.preventDefault();
+                                                setTechnicalDomain(prev => [...prev, domainInput.trim()]);
+                                                setDomainInput('');
+                                            }
+                                        }}
+                                        placeholder="Ej: Impresión 3D, Arduino, Diseño CAD..."
+                                        className="h-9 text-sm"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!domainInput.trim()}
+                                        onClick={() => {
+                                            if (domainInput.trim()) {
+                                                setTechnicalDomain(prev => [...prev, domainInput.trim()]);
+                                                setDomainInput('');
+                                            }
+                                        }}
+                                        className="shrink-0"
+                                    >
+                                        Agregar
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Disponibilidad - Modalidad */}
+                            <div className="space-y-4 pt-6 border-t border-gray-100">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-semibold text-gray-700">Disponibilidad</h3>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-medium text-gray-700">Modalidad</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {AVAILABILITY_MODE_OPTIONS.map((option) => {
+                                            const Icon = option.icon;
+                                            const isSelected = selectedAvailabilityMode === option.value;
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    onClick={() => setSelectedAvailabilityMode(
+                                                        isSelected ? '' : option.value
+                                                    )}
+                                                    className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                                                        isSelected
+                                                            ? `${option.color} ring-2 ring-offset-2`
+                                                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <CheckCircle2 className="absolute top-2 right-2 h-5 w-5 text-current" />
+                                                    )}
+                                                    <Icon className={`h-6 w-6 mb-2 ${isSelected ? 'text-current' : 'text-gray-400'}`} />
+                                                    <p className={`font-medium text-sm ${isSelected ? 'text-current' : 'text-gray-700'}`}>
+                                                        {option.label}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                        {option.description}
+                                                    </p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Calendario semanal expandible */}
+                                <WeeklyScheduleEditor
+                                    value={weeklySchedule}
+                                    onChange={setWeeklySchedule}
+                                />
+                            </div>
+
                             {/* Social Links */}
                             <div className="space-y-4 pt-6 border-t border-gray-100">
                                 <div className="flex items-center gap-2">
@@ -461,15 +663,16 @@ export function TeamMemberForm({ member, isOpen, onOpenChange, onSuccess }: Team
                                     <div className="space-y-2">
                                         <Label htmlFor="email" className="text-xs uppercase tracking-wider text-gray-500 font-semibold flex items-center gap-2">
                                             <Mail className="h-3.5 w-3.5" />
-                                            Email
+                                            Email {!member && <span className="text-red-500">*</span>}
                                         </Label>
                                         <Input
                                             id="email"
                                             name="email"
                                             type="email"
-                                            defaultValue={member?.social?.email}
+                                            defaultValue={member?.email}
                                             placeholder="correo@fablab.com"
                                             className="h-10"
+                                            required={!member}
                                         />
                                     </div>
                                     <div className="space-y-2">

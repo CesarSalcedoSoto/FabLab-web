@@ -4,7 +4,8 @@ import { getPayload } from "payload";
 import config from "@payload-config";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import type { EquipmentData, InventoryItemData, EquipmentUsageData } from "./data";
+import type { EquipmentData, InventoryItemData, EquipmentUsageData, RoomOption } from "./data";
+import type { CollectionSlug } from "payload";
 
 async function getCurrentUser() {
     try {
@@ -23,6 +24,32 @@ async function getCurrentUser() {
         }
     } catch { /* ignore */ }
     return null;
+}
+
+const ROOMS_COLLECTION = "rooms" as CollectionSlug;
+
+// ═══════════════════════════════════════════
+// ── SALAS (para selector de ubicación) ────
+// ═══════════════════════════════════════════
+
+export async function getRoomsForSelect(): Promise<RoomOption[]> {
+    try {
+        const payload = await getPayload({ config });
+        const result = await payload.find({
+            collection: ROOMS_COLLECTION,
+            sort: 'name',
+            limit: 200,
+            overrideAccess: true,
+        });
+        return result.docs.map((doc: any) => ({
+            id: Number(doc.id),
+            name: doc.name || '',
+            location: doc.location || '',
+        }));
+    } catch (error) {
+        console.error('Error fetching rooms for select:', error);
+        return [];
+    }
 }
 
 // ═══════════════════════════════════════════
@@ -58,7 +85,9 @@ export async function getEquipment(): Promise<EquipmentData[]> {
             id: String(doc.id),
             name: doc.name,
             slug: doc.slug,
+            equipmentCode: doc.equipmentCode || '',
             category: doc.category,
+            ownerArea: doc.ownerArea || '',
             brand: doc.brand || '',
             model: doc.model || '',
             description: doc.description || '',
@@ -70,11 +99,32 @@ export async function getEquipment(): Promise<EquipmentData[]> {
             specifications: doc.specifications?.map((s: any) => ({ label: s.label, value: s.value })) || [],
             materials: doc.materials?.map((m: any) => m.material) || [],
             status: doc.status || 'available',
-            location: doc.location || '',
+            location: typeof doc.location === 'object' && doc.location ? doc.location.name || '' : '',
+            locationId: typeof doc.location === 'object' && doc.location ? Number(doc.location.id) : (typeof doc.location === 'number' ? doc.location : null),
+            technicalResponsible: typeof doc.technicalResponsible === 'object' && doc.technicalResponsible ? doc.technicalResponsible.name || '' : '',
+            technicalResponsibleId: typeof doc.technicalResponsible === 'object' && doc.technicalResponsible ? Number(doc.technicalResponsible.id) : (typeof doc.technicalResponsible === 'number' ? doc.technicalResponsible : null),
+            lastReviewDate: doc.lastReviewDate || null,
             requiresTraining: doc.requiresTraining || false,
             showInTecnologias: doc.showInTecnologias ?? true,
             order: doc.order || 0,
             activeUsages: usageCountMap[String(doc.id)] || 0,
+            maintenanceHistory: (doc.maintenanceHistory || []).map((m: any) => ({
+                date: m.date,
+                maintenanceType: m.maintenanceType,
+                description: m.description || '',
+                performedBy: m.performedBy || '',
+                cost: m.cost ?? null,
+                nextMaintenanceDate: m.nextMaintenanceDate || null,
+            })),
+            failureHistory: (doc.failureHistory || []).map((f: any) => ({
+                date: f.date,
+                severity: f.severity,
+                description: f.description || '',
+                reportedBy: f.reportedBy || '',
+                resolved: f.resolved || false,
+                resolution: f.resolution || '',
+                resolvedDate: f.resolvedDate || null,
+            })),
         }));
     } catch (error) {
         console.error('Error fetching equipment:', error);
@@ -115,12 +165,14 @@ export async function createEquipment(formData: FormData): Promise<{ success: bo
             data: {
                 name,
                 slug,
+                equipmentCode: formData.get('equipmentCode') as string || '',
                 category: formData.get('category') as string || '3d-printer',
+                ownerArea: formData.get('ownerArea') as string || '',
                 brand: formData.get('brand') as string || '',
                 model: formData.get('model') as string || '',
                 description: formData.get('description') as string || '',
                 status: formData.get('status') as string || 'available',
-                location: formData.get('location') as string || '',
+                location: formData.get('location') ? parseInt(formData.get('location') as string) : undefined,
                 requiresTraining: formData.get('requiresTraining') === 'true',
                 showInTecnologias: formData.get('showInTecnologias') === 'true',
                 specifications,
@@ -149,12 +201,14 @@ export async function updateEquipment(id: string, formData: FormData): Promise<{
 
         const updateData: any = {
             name: formData.get('name') as string,
+            equipmentCode: formData.get('equipmentCode') as string || '',
             category: formData.get('category') as string,
+            ownerArea: formData.get('ownerArea') as string || '',
             brand: formData.get('brand') as string || '',
             model: formData.get('model') as string || '',
             description: formData.get('description') as string || '',
             status: formData.get('status') as string,
-            location: formData.get('location') as string || '',
+            location: formData.get('location') ? parseInt(formData.get('location') as string) : null,
             requiresTraining: formData.get('requiresTraining') === 'true',
             showInTecnologias: formData.get('showInTecnologias') === 'true',
             specifications,
@@ -237,7 +291,8 @@ export async function getInventoryItems(): Promise<InventoryItemData[]> {
             quantity: doc.quantity || 0,
             unit: doc.unit || 'unit',
             minimumStock: doc.minimumStock || 0,
-            location: doc.location || '',
+            location: typeof doc.location === 'object' && doc.location ? doc.location.name || '' : '',
+            locationId: typeof doc.location === 'object' && doc.location ? Number(doc.location.id) : (typeof doc.location === 'number' ? doc.location : null),
             supplier: doc.supplier || '',
             unitCost: doc.unitCost ?? null,
             status: doc.status || 'available',
@@ -278,7 +333,7 @@ export async function createInventoryItem(formData: FormData): Promise<{ success
                 quantity: parseInt(formData.get('quantity') as string) || 0,
                 unit: formData.get('unit') as string || 'unit',
                 minimumStock: parseInt(formData.get('minimumStock') as string) || 0,
-                location: formData.get('location') as string || '',
+                location: formData.get('location') ? parseInt(formData.get('location') as string) : undefined,
                 supplier: formData.get('supplier') as string || '',
                 unitCost: formData.get('unitCost') ? parseFloat(formData.get('unitCost') as string) : undefined,
                 notes: formData.get('notes') as string || '',
@@ -306,7 +361,7 @@ export async function updateInventoryItem(id: string, formData: FormData): Promi
             quantity: parseInt(formData.get('quantity') as string) || 0,
             unit: formData.get('unit') as string || 'unit',
             minimumStock: parseInt(formData.get('minimumStock') as string) || 0,
-            location: formData.get('location') as string || '',
+            location: formData.get('location') ? parseInt(formData.get('location') as string) : null,
             supplier: formData.get('supplier') as string || '',
             unitCost: formData.get('unitCost') ? parseFloat(formData.get('unitCost') as string) : null,
             notes: formData.get('notes') as string || '',
@@ -620,7 +675,7 @@ export async function exportInventoryToExcel(): Promise<{ success: boolean; data
                 quantity: doc.quantity ?? 0,
                 unit: UNIT_LABELS[doc.unit] || doc.unit || '',
                 minimumStock: doc.minimumStock ?? 0,
-                location: doc.location || '',
+                location: typeof doc.location === 'object' ? doc.location?.name || '' : '',
                 supplier: doc.supplier || '',
                 unitCost: doc.unitCost ?? '',
                 notes: doc.notes || '',
@@ -686,6 +741,17 @@ export async function importInventoryFromExcel(base64Data: string): Promise<{ su
             return { success: false, error: 'No se encontró la columna "Nombre" en el Excel. Usa la plantilla de ejemplo.' };
         }
 
+        // Pre-fetch rooms for location matching
+        const roomsResult = await payload.find({
+            collection: ROOMS_COLLECTION,
+            limit: 200,
+            overrideAccess: true,
+        });
+        const roomNameMap: Record<string, number> = {};
+        for (const room of roomsResult.docs as any[]) {
+            roomNameMap[String(room.name).toLowerCase().trim()] = Number(room.id);
+        }
+
         const getCellValue = (row: any, key: string): string => {
             const col = colMap[key];
             if (!col) return '';
@@ -703,6 +769,9 @@ export async function importInventoryFromExcel(base64Data: string): Promise<{ su
             const rawMinStock = getCellValue(row, 'minimumStock');
             const rawCost = getCellValue(row, 'unitCost');
 
+            const locationText = getCellValue(row, 'location');
+            const locationRoomId = locationText ? roomNameMap[locationText.toLowerCase().trim()] : undefined;
+
             const itemData = {
                 name,
                 sku: getCellValue(row, 'sku') || undefined,
@@ -711,7 +780,7 @@ export async function importInventoryFromExcel(base64Data: string): Promise<{ su
                 quantity: rawQty ? parseInt(rawQty) || 0 : 0,
                 unit: resolveUnit(getCellValue(row, 'unit')),
                 minimumStock: rawMinStock ? parseInt(rawMinStock) || 0 : 0,
-                location: getCellValue(row, 'location'),
+                location: locationRoomId || undefined,
                 supplier: getCellValue(row, 'supplier'),
                 unitCost: rawCost ? parseFloat(rawCost) || undefined : undefined,
                 notes: getCellValue(row, 'notes'),

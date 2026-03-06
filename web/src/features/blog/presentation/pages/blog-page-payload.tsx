@@ -134,8 +134,9 @@ function PostCardFeatured({ post }: { post: Post }) {
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300"
+            className="group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
         >
+            <Link href={`/blog/${post.slug}`} className="absolute inset-0 z-10" aria-label={post.titulo} />
             <div className="grid md:grid-cols-5 gap-0 h-full">
                 {/* Image */}
                 <div className="md:col-span-3 relative h-64 md:h-full min-h-[300px] overflow-hidden">
@@ -164,7 +165,7 @@ function PostCardFeatured({ post }: { post: Post }) {
                             {post.categorias?.[0]?.nombre || "Blog"}
                         </span>
                         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors tight-leading">
-                            <Link href={`/blog/${post.slug}`}>{post.titulo}</Link>
+                            {post.titulo}
                         </h2>
                     </div>
 
@@ -191,12 +192,11 @@ function PostCardFeatured({ post }: { post: Post }) {
                             </div>
                         </div>
 
-                        <Link
-                            href={`/blog/${post.slug}`}
+                        <span
                             className="w-8 h-8 flex items-center justify-center rounded-full bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-all"
                         >
                             <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -215,8 +215,9 @@ function PostCard({ post, index }: { post: Post; index: number }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.05 }}
-            className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full"
+            className="group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full cursor-pointer"
         >
+            <Link href={`/blog/${post.slug}`} className="absolute inset-0 z-10" aria-label={post.titulo} />
             {/* Image */}
             <div className="relative h-48 overflow-hidden bg-gray-50">
                 {imageUrl ? (
@@ -253,7 +254,7 @@ function PostCard({ post, index }: { post: Post; index: number }) {
                 </div>
 
                 <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors line-clamp-2 leading-tight">
-                    <Link href={`/blog/${post.slug}`}>{post.titulo}</Link>
+                    {post.titulo}
                 </h3>
 
                 <p className="text-gray-600 text-xs mb-4 line-clamp-3 leading-relaxed">

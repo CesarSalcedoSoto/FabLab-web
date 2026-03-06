@@ -7,11 +7,32 @@ export interface EquipmentSpecification {
     value: string;
 }
 
+export interface MaintenanceEntry {
+    date: string;
+    maintenanceType: 'preventive' | 'corrective' | 'calibration' | 'cleaning' | 'upgrade';
+    description: string;
+    performedBy: string;
+    cost: number | null;
+    nextMaintenanceDate: string | null;
+}
+
+export interface FailureEntry {
+    date: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    description: string;
+    reportedBy: string;
+    resolved: boolean;
+    resolution: string;
+    resolvedDate: string | null;
+}
+
 export interface EquipmentData {
     id: string;
     name: string;
     slug: string;
+    equipmentCode: string;
     category: string;
+    ownerArea: string;
     brand: string;
     model: string;
     description: string;
@@ -19,12 +40,18 @@ export interface EquipmentData {
     gallery: { id: string; url: string }[];
     specifications: EquipmentSpecification[];
     materials: string[];
-    status: 'available' | 'maintenance' | 'out-of-service';
+    status: 'available' | 'in-use' | 'maintenance' | 'inactive' | 'out-of-service' | 'borrowed';
     location: string;
+    locationId: number | null;
+    technicalResponsible: string;
+    technicalResponsibleId: number | null;
+    lastReviewDate: string | null;
     requiresTraining: boolean;
     showInTecnologias: boolean;
     order: number;
     activeUsages: number;
+    maintenanceHistory: MaintenanceEntry[];
+    failureHistory: FailureEntry[];
 }
 
 // ── Inventario (solo admin) ──
@@ -40,6 +67,7 @@ export interface InventoryItemData {
     unit: string;
     minimumStock: number;
     location: string;
+    locationId: number | null;
     supplier: string;
     unitCost: number | null;
     status: 'available' | 'low-stock' | 'out-of-stock';
@@ -60,6 +88,14 @@ export interface EquipmentUsageData {
     estimatedDuration: string;
     description: string;
     status: 'active' | 'completed';
+}
+
+// ── Sala / Room para selector de ubicación ──
+
+export interface RoomOption {
+    id: number;
+    name: string;
+    location: string;
 }
 
 // ── Constantes de categoría ──
@@ -101,9 +137,27 @@ export const INVENTORY_UNITS: Record<string, string> = {
 };
 
 export const EQUIPMENT_STATUS: Record<string, string> = {
-    'available': 'Disponible',
-    'maintenance': 'En Mantenimiento',
+    'available': 'Activo',
+    'in-use': 'En Uso',
+    'maintenance': 'En Mantención',
+    'inactive': 'Inactivo',
     'out-of-service': 'Fuera de Servicio',
+    'borrowed': 'Prestado',
+};
+
+export const MAINTENANCE_TYPES: Record<string, string> = {
+    'preventive': 'Preventiva',
+    'corrective': 'Correctiva',
+    'calibration': 'Calibración',
+    'cleaning': 'Limpieza',
+    'upgrade': 'Actualización',
+};
+
+export const FAILURE_SEVERITY: Record<string, string> = {
+    'low': 'Baja',
+    'medium': 'Media',
+    'high': 'Alta',
+    'critical': 'Crítica',
 };
 
 export const INVENTORY_STATUS: Record<string, string> = {

@@ -56,7 +56,10 @@ export default buildConfig({
     pool: {
         connectionString: DATABASE_URL,
     },
-    push: false,  // En producción NUNCA push:true (puede alterar esquema y romper relaciones)
+    // push:false en producción. Para sincronizar esquema una sola vez:
+    //   DB_PUSH=true docker compose up -d --no-deps web
+    // Luego quitar DB_PUSH y reiniciar.
+    push: process.env.DB_PUSH === 'true',
 }),
 
     // Editor Lexical
