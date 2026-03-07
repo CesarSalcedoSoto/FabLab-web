@@ -38,6 +38,14 @@ function canManageProject(user: AdminUser, projectDoc: any): boolean {
     });
 }
 
+/** Solo acepta cadenas puramente numéricas como IDs de relación (rechaza MongoDB ObjectIds parciales) */
+function toRelationId(raw: string): number | null {
+    const s = raw.trim();
+    if (!/^\d+$/.test(s)) return null;
+    const n = parseInt(s, 10);
+    return isNaN(n) ? null : n;
+}
+
 function normalizeCategory(category: string): string {
     const map: Record<string, string> = {
         'Hardware': 'proyectos-fisicos',
@@ -199,7 +207,7 @@ export async function createProject(formData: FormData): Promise<{ success: bool
 
         // Technologies are now relationship IDs referencing the technologies collection
         const technologiesRaw = (formData.get('technologies') as string || '').split(',').map(t => t.trim()).filter(Boolean);
-        const technologyIds = technologiesRaw.map(t => parseInt(t, 10)).filter(id => !Number.isNaN(id));
+        const technologyIds = technologiesRaw.map(toRelationId).filter((id): id is number => id !== null);
 
         let rawCreators: any[] = [];
         let links: any[] = [];
@@ -216,7 +224,7 @@ export async function createProject(formData: FormData): Promise<{ success: bool
 
         // Formatear creadores - Payload espera IDs numéricos para relaciones
         const creators = rawCreators.map(c => ({
-            ...(c.teamMember ? { teamMember: parseInt(c.teamMember) || null } : {}),
+            ...(c.teamMember ? { teamMember: toRelationId(String(c.teamMember)) } : {}),
             ...(c.externalName ? { externalName: c.externalName } : {}),
             role: c.role || '',
         })).filter(c => c.teamMember || c.externalName);
@@ -271,7 +279,7 @@ export async function createProject(formData: FormData): Promise<{ success: bool
 
         validateProjectPayload({ category, technologies: technologyIds, startDate, endDate, meetings });
 
-        const responsibleStaff = responsibleStaffRaw.map((id) => parseInt(String(id), 10)).filter((id) => !Number.isNaN(id));
+        const responsibleStaff = responsibleStaffRaw.map((id) => toRelationId(String(id))).filter((id): id is number => id !== null);
         const externalStaff = externalStaffRaw
             .filter((s: any) => s.name?.trim())
             .map((s: any) => ({ name: s.name.trim(), role: s.role?.trim() || '' }));
@@ -378,7 +386,7 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
 
         // Technologies as relationship IDs
         const technologiesRaw = (formData.get('technologies') as string || '').split(',').map(t => t.trim()).filter(Boolean);
-        const technologyIds = technologiesRaw.map(t => parseInt(t, 10)).filter(id => !Number.isNaN(id));
+        const technologyIds = technologiesRaw.map(toRelationId).filter((id): id is number => id !== null);
 
         let rawCreators: any[] = [];
         let links: any[] = [];
@@ -408,7 +416,7 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
 
         // Formatear creadores - Payload espera IDs numéricos para relaciones
         const creators = rawCreators.map(c => ({
-            ...(c.teamMember ? { teamMember: parseInt(c.teamMember) || null } : {}),
+            ...(c.teamMember ? { teamMember: toRelationId(String(c.teamMember)) } : {}),
             ...(c.externalName ? { externalName: c.externalName } : {}),
             role: c.role || '',
         })).filter(c => c.teamMember || c.externalName);
@@ -455,7 +463,7 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
         const endDate = (formData.get('endDate') as string) || undefined;
         validateProjectPayload({ category, technologies: technologyIds, startDate, endDate, meetings });
 
-        const responsibleStaff = responsibleStaffRaw.map((staffId) => parseInt(String(staffId), 10)).filter((staffId) => !Number.isNaN(staffId));
+        const responsibleStaff = responsibleStaffRaw.map((staffId) => toRelationId(String(staffId))).filter((id): id is number => id !== null);
         const externalStaff = externalStaffRaw
             .filter((s: any) => s.name?.trim())
             .map((s: any) => ({ name: s.name.trim(), role: s.role?.trim() || '' }));
