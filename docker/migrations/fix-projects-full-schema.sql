@@ -44,7 +44,7 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS practice_hours_referring_organizat
 CREATE TABLE IF NOT EXISTS projects_gallery (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     image_id integer
 );
 CREATE INDEX IF NOT EXISTS idx_projects_gallery_order ON projects_gallery(_order);
@@ -81,7 +81,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_external_staff (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     name varchar,
     role varchar
 );
@@ -107,7 +107,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_creators (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     team_member_id integer,
     external_name varchar,
     role varchar
@@ -146,7 +146,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_links (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     label varchar,
     url varchar
 );
@@ -172,7 +172,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_beneficiaries (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     tipo_beneficiario varchar,
     rut varchar,
     first_name varchar,
@@ -205,7 +205,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_practice_hours_specialists (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     first_name varchar,
     paternal_last_name varchar,
     maternal_last_name varchar,
@@ -234,7 +234,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS projects_practice_hours_bidireccion_entries (
     _order integer NOT NULL,
     _parent_id integer NOT NULL,
-    id serial PRIMARY KEY,
+    id varchar PRIMARY KEY,
     tipo_beneficiario varchar,
     rut varchar,
     first_name varchar,
