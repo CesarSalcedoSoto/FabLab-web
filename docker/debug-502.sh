@@ -2,6 +2,8 @@
 # Script de diagnóstico para error 502 Bad Gateway
 # Ejecutar: bash debug-502.sh
 
+APP_ROOT="/opt/FabLab-web"
+
 echo "============================================"
 echo "FabLab - Diagnóstico 502 Bad Gateway"
 echo "============================================"
@@ -9,7 +11,7 @@ echo ""
 
 echo "1. Verificando estado de contenedores..."
 echo ""
-docker ps -a | grep -E "fablab-web|fablab-postgres"
+docker ps -a | grep -E "fablab-web|fablab-db"
 echo ""
 
 if ! docker ps | grep -q fablab-web; then
@@ -44,7 +46,7 @@ echo ""
 
 echo "4. Verificando logs del contenedor web (últimas 30 líneas)..."
 echo ""
-docker compose -f /root/FabLab-web/docker/docker-compose.web.yml logs --tail=30 web
+docker compose -f "$APP_ROOT/docker/docker-compose.yml" logs --tail=30 web
 echo ""
 
 echo "5. Verificando Nginx..."
@@ -72,16 +74,16 @@ echo "Resumen de Comandos Útiles:"
 echo "============================================"
 echo ""
 echo "Ver logs en vivo:"
-echo "  docker compose -f /root/FabLab-web/docker/docker-compose.web.yml logs -f web"
+echo "  docker compose -f $APP_ROOT/docker/docker-compose.yml logs -f web"
 echo ""
 echo "Reiniciar contenedor:"
-echo "  cd /root/FabLab-web/docker"
-echo "  docker compose -f docker-compose.web.yml restart web"
+echo "  cd $APP_ROOT/docker"
+echo "  docker compose restart web"
 echo ""
 echo "Reconstruir contenedor:"
-echo "  cd /root/FabLab-web/docker"
-echo "  docker compose -f docker-compose.web.yml down"
-echo "  docker compose -f docker-compose.web.yml up -d --build"
+echo "  cd $APP_ROOT/docker"
+echo "  docker compose down"
+echo "  docker compose up -d --build"
 echo ""
 echo "Ver estado de contenedores:"
 echo "  docker ps -a"
@@ -90,5 +92,5 @@ echo "Entrar al contenedor:"
 echo "  docker exec -it fablab-web sh"
 echo ""
 echo "Verificar .env:"
-echo "  cat /root/FabLab-web/.env"
+echo "  cat $APP_ROOT/docker/.env"
 echo ""

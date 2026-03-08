@@ -2,6 +2,9 @@
 # Script de verificación para PostgreSQL en Docker
 # Ejecutar: bash check-postgres.sh
 
+APP_ROOT="/opt/FabLab-web"
+DB_CONTAINER="fablab-db"
+
 echo "============================================"
 echo "FabLab - Verificación PostgreSQL Docker"
 echo "============================================"
@@ -9,18 +12,18 @@ echo ""
 
 # Verificar que el contenedor PostgreSQL está corriendo
 echo "1. Verificando contenedor PostgreSQL..."
-if docker ps | grep -q fablab-postgres; then
-    echo "✓ Contenedor fablab-postgres está corriendo"
-    docker ps | grep fablab-postgres
+if docker ps | grep -q "$DB_CONTAINER"; then
+    echo "✓ Contenedor $DB_CONTAINER está corriendo"
+    docker ps | grep "$DB_CONTAINER"
 else
-    echo "❌ El contenedor fablab-postgres NO está corriendo"
+    echo "❌ El contenedor $DB_CONTAINER NO está corriendo"
     echo ""
     echo "Iniciando PostgreSQL..."
-    cd /root/FabLab-web/docker
-    docker compose -f docker-compose.postgres.yml up -d
+    cd "$APP_ROOT/docker"
+    docker compose up -d db
     sleep 5
     
-    if docker ps | grep -q fablab-postgres; then
+    if docker ps | grep -q "$DB_CONTAINER"; then
         echo "✓ PostgreSQL iniciado correctamente"
     else
         echo "❌ Error al iniciar PostgreSQL"
@@ -38,14 +41,14 @@ fi
 
 echo ""
 echo "3. Probando conexión a la base de datos..."
-if docker exec fablab-postgres psql -U fablab -d fablab_blog -c "SELECT version();" > /dev/null 2>&1; then
+if docker exec "$DB_CONTAINER" psql -U fablab -d fablab_blog -c "SELECT version();" > /dev/null 2>&1; then
     echo "✓ Conexión exitosa a la base de datos"
     echo ""
     echo "Información de la base de datos:"
-    docker exec fablab-postgres psql -U fablab -d fablab_blog -c "SELECT version();"
+    docker exec "$DB_CONTAINER" psql -U fablab -d fablab_blog -c "SELECT version();"
 else
     echo "❌ No se pudo conectar a la base de datos"
-    echo "Verifica las credenciales en docker-compose.postgres.yml"
+    echo "Verifica las credenciales en docker/.env"
 fi
 
 echo ""
@@ -64,14 +67,14 @@ echo "============================================"
 echo ""
 
 # Verificar si existe el archivo .env
-if [ -f "/root/FabLab-web/.env" ]; then
+if [ -f "$APP_ROOT/.env" ]; then
     echo "✓ Archivo .env existe"
     
-    if grep -q "DATABASE_URL" /root/FabLab-web/.env; then
+    if grep -q "DATABASE_URL" "$APP_ROOT/.env"; then
         echo "✓ DATABASE_URL está configurado en .env"
         echo ""
         echo "DATABASE_URL actual:"
-        grep "DATABASE_URL" /root/FabLab-web/.env | grep -v "^#"
+        grep "DATABASE_URL" "$APP_ROOT/.env" | grep -v "^#"
     else
         echo "⚠️  DATABASE_URL NO está configurado en .env"
     fi
@@ -79,12 +82,12 @@ else
     echo "❌ Archivo .env NO existe"
     echo ""
     echo "Crea el archivo .env con:"
-    echo "  cd /root/FabLab-web"
+    echo "  cd $APP_ROOT"
     echo "  nano .env"
 fi
 
 echo ""
 echo "Próximo paso:"
-echo "  cd /root/FabLab-web/docker"
-echo "  docker compose -f docker-compose.web.yml up -d --build"
+echo "  cd $APP_ROOT/docker"
+echo "  docker compose up -d --build web"
 echo ""

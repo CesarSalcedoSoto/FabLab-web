@@ -4,17 +4,21 @@
 
 set -e
 
+APP_ROOT="/opt/FabLab-web"
+WEB_CONTAINER="fablab-web"
+DB_CONTAINER="fablab-db"
+
 echo "============================================"
 echo "FabLab - Limpieza y Reinicio Completo"
 echo "============================================"
 echo ""
 
-cd /root/FabLab-web
+cd "$APP_ROOT"
 
 # 1. Cargar variables de entorno
 echo "1. Cargando variables de entorno..."
 if [ ! -f .env ]; then
-    echo "❌ ERROR: Archivo .env no existe en /root/FabLab-web/"
+    echo "❌ ERROR: Archivo .env no existe en $APP_ROOT/"
     exit 1
 fi
 
@@ -29,13 +33,13 @@ echo ""
 # 2. Detener TODOS los contenedores relacionados
 echo "2. Deteniendo contenedores..."
 docker stop fablab-web 2>/dev/null || true
-docker stop fablab-postgres 2>/dev/null || true
+docker stop fablab-db 2>/dev/null || true
 docker stop fablab-nginx 2>/dev/null || true
 
 # 3. Eliminar contenedores
 echo "3. Eliminando contenedores..."
 docker rm -f fablab-web 2>/dev/null || true
-docker rm -f fablab-postgres 2>/dev/null || true
+docker rm -f fablab-db 2>/dev/null || true
 docker rm -f fablab-nginx 2>/dev/null || true
 
 # 4. Verificar que el puerto 9011 está libre
@@ -59,7 +63,7 @@ echo ""
 # 5. Iniciar PostgreSQL
 echo "5. Iniciando PostgreSQL..."
 cd docker
-docker compose -f docker-compose.postgres.yml up -d
+docker compose up -d db
 cd ..
 
 echo "   Esperando 5 segundos..."
@@ -69,9 +73,7 @@ echo ""
 # 6. Iniciar aplicación web con variables explícitas
 echo "6. Iniciando aplicación web..."
 cd docker
-docker compose -f docker-compose.web.yml \
-    --env-file ../.env \
-    up -d --remove-orphans
+docker compose --env-file .env up -d --remove-orphans web
 cd ..
 
 echo ""
@@ -95,14 +97,14 @@ netstat -tuln | grep :9011 || echo "No está escuchando aún"
 echo ""
 echo "Últimos logs:"
 cd docker
-docker compose -f docker-compose.web.yml logs --tail=20 web
+docker compose logs --tail=20 web
 
 echo ""
 echo "============================================"
 echo "Comandos útiles:"
 echo "============================================"
-echo "Ver logs:    cd /root/FabLab-web/docker && docker compose -f docker-compose.web.yml logs -f web"
-echo "Reiniciar:   cd /root/FabLab-web/docker && docker compose -f docker-compose.web.yml restart web"
+echo "Ver logs:    cd $APP_ROOT/docker && docker compose logs -f web"
+echo "Reiniciar:   cd $APP_ROOT/docker && docker compose restart web"
 echo "Estado:      docker ps"
 echo "Probar app:  curl http://127.0.0.1:9011"
 echo ""
