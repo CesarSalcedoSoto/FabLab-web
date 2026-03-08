@@ -429,24 +429,30 @@ export default function TeamMembersPage() {
     const handleDeleteMember = async (member: TeamMemberData) => {
         if (confirm(`¿Estás seguro de quitar a ${member.name} del equipo?`)) {
             try {
-                await deleteTeamMember(member.id);
+                const result = await deleteTeamMember(member.id);
+                if (!result.success) {
+                    throw new Error(result.error || 'No se pudo quitar del equipo');
+                }
                 toast.success(`${member.name} quitado del equipo`);
                 loadMembers();
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error("Error eliminando miembro:", error);
-                toast.error("Error al eliminar miembro");
+                toast.error(error instanceof Error ? error.message : "Error al eliminar miembro");
             }
         }
     };
 
     const handleToggleStatus = async (member: TeamMemberData) => {
         try {
-            await toggleTeamMemberStatus(member.id, !member.active);
+            const result = await toggleTeamMemberStatus(member.id, !member.active);
+            if (!result.success) {
+                throw new Error(result.error || 'No se pudo cambiar el estado');
+            }
             toast.success(`${member.name} ${!member.active ? 'visible' : 'oculto'} en /equipo`);
             loadMembers();
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error cambiando estado:", error);
-            toast.error("Error al cambiar estado");
+            toast.error(error instanceof Error ? error.message : "Error al cambiar estado");
         }
     };
 

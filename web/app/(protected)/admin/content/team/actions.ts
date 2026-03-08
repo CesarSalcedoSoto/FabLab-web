@@ -478,11 +478,12 @@ export async function updateTeamMember(id: string, formData: FormData) {
 export async function deleteTeamMember(id: string) {
     try {
         const payload = await getPayload({ config });
+        const normalizedId = /^\d+$/.test(String(id)) ? Number(id) : id;
         
         // En lugar de eliminar el usuario, solo quitarlo del equipo
         await payload.update({
             collection: 'users',
-            id,
+            id: normalizedId,
             data: {
                 showInTeam: false,
             },
@@ -500,10 +501,11 @@ export async function deleteTeamMember(id: string) {
 export async function toggleTeamMemberStatus(id: string, active: boolean) {
     try {
         const payload = await getPayload({ config });
+        const normalizedId = /^\d+$/.test(String(id)) ? Number(id) : id;
 
         await payload.update({
             collection: 'users',
-            id,
+            id: normalizedId,
             data: {
                 showInTeam: active,
             },
