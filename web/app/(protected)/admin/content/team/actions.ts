@@ -64,7 +64,7 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
         });
 
         return members.map((doc: any) => ({
-            id: doc.id,
+            id: String(doc.id),
             name: doc.name || 'Sin nombre',
             email: doc.email,
             role: doc.jobTitle || '',
@@ -116,7 +116,7 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
         });
 
         return members.map((doc: any) => ({
-            id: doc.id,
+            id: String(doc.id),
             name: doc.name,
             email: doc.email,
             role: doc.jobTitle || '',
@@ -478,15 +478,14 @@ export async function updateTeamMember(id: string, formData: FormData) {
 export async function deleteTeamMember(id: string) {
     try {
         const payload = await getPayload({ config });
-        const normalizedId = /^\d+$/.test(String(id)) ? Number(id) : id;
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            return { success: false, error: `ID inválido: ${id}` };
+        }
         
-        // En lugar de eliminar el usuario, solo quitarlo del equipo
-        await payload.update({
+        await payload.delete({
             collection: 'users',
-            id: normalizedId,
-            data: {
-                showInTeam: false,
-            },
+            id: numericId,
         });
         
         revalidatePath('/admin/content/team');
@@ -501,11 +500,10 @@ export async function deleteTeamMember(id: string) {
 export async function toggleTeamMemberStatus(id: string, active: boolean) {
     try {
         const payload = await getPayload({ config });
-        const normalizedId = /^\d+$/.test(String(id)) ? Number(id) : id;
 
         await payload.update({
             collection: 'users',
-            id: normalizedId,
+            id,
             data: {
                 showInTeam: active,
             },
