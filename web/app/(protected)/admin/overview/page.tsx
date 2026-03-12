@@ -54,7 +54,7 @@ export default async function OverviewPage() {
   });
 
   return (
-    <div className="space-y-6 p-2 sm:p-0 mt-[20px]">
+    <div className="space-y-6 p-2 sm:p-0 mt-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
