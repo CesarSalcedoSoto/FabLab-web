@@ -1,0 +1,68 @@
+# =============================================
+# Dockerfile.dev - FabLab Web (Mac M1/M2/M3)
+# =============================================
+# Compatible con Apple Silicon (ARM64 Linux en Docker)
+# No fuerza binarios x64, instala los nativos para arm64
+
+FROM node:20-bookworm AS base
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# ---- Dependencias ----
+FROM base AS deps
+COPY package*.json ./
+
+# Instalar todas las dependencias
+# Luego forzar los binarios nativos correctos para linux-arm64
+RUN npm ci --include=optional --legacy-peer-deps && \
+    npm install sharp --legacy-peer-deps && \
+    npm install lightningcss-linux-arm64-gnu --legacy-peer-deps && \
+    npm install @tailwindcss/oxide-linux-arm64-gnu --legacy-peer-deps
+
+# ---- Builder ----
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Build args para variables de Next.js (client-side)
+ARG NEXT_PUBLIC_SERVER_URL
+ARG NEXT_PUBLIC_VESSEL_API_URL
+ARG NEXT_PUBLIC_LARAVEL_URL
+ARG NEXT_PUBLIC_STRAPI_URL
+ARG NEXTAUTH_URL
+ARG NEXTAUTH_SECRET
+
+ENV NEXT_PUBLIC_SERVER_URL=$NEXT_PUBLIC_SERVER_URL
+ENV NEXT_PUBLIC_VESSEL_API_URL=$NEXT_PUBLIC_VESSEL_API_URL
+ENV NEXT_PUBLIC_LARAVEL_URL=$NEXT_PUBLIC_LARAVEL_URL
+ENV NEXT_PUBLIC_STRAPI_URL=$NEXT_PUBLIC_STRAPI_URL
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXT_SHARP_PATH=/app/node_modules/sharp
+
+RUN npm run build
+
+# ---- Runner (imagen final liviana) ----
+FROM node:20-bookworm-slim AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nextjs && \
+    adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+
+# Copiar sharp y sus binarios nativos al standalone
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img ./node_modules/@img
+
+# Directorio para media (volumen persistente)
+RUN mkdir -p /app/media && chown nextjs:nextjs /app/media
+
+USER nextjs
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+EXPOSE 3000
+CMD ["node", "server.js"]

@@ -1,0 +1,75 @@
+# =============================================
+# Docker Compose - FabLab Desarrollo Local (M1)
+# =============================================
+# Uso:
+#   Levantar:     docker compose -f docker-compose.dev.yml up --build
+#   Background:   docker compose -f docker-compose.dev.yml up -d --build
+#   Parar:        docker compose -f docker-compose.dev.yml down
+#   Ver logs:     docker compose -f docker-compose.dev.yml logs -f web
+# =============================================
+
+services:
+  # ========================
+  # PostgreSQL - Base de datos
+  # ========================
+  db:
+    image: postgres:16-alpine
+    container_name: fablab-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fablab_blog
+      POSTGRES_USER: fablab
+      POSTGRES_PASSWORD: fablab_secret_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - fablab-postgres-dev:/var/lib/postgresql/data
+    networks:
+      - fablab-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fablab -d fablab_blog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================
+  # Web - Next.js + Payload CMS
+  # ========================
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+      args:
+        NEXT_PUBLIC_SERVER_URL: http://localhost:9011
+        NEXT_PUBLIC_VESSEL_API_URL: ""
+        NEXT_PUBLIC_LARAVEL_URL: ""
+        NEXT_PUBLIC_STRAPI_URL: ""
+        NEXTAUTH_URL: http://localhost:9011
+        NEXTAUTH_SECRET: fablab-dev-secret-local-2024
+    container_name: fablab-web-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://fablab:fablab_secret_2024@db:5432/fablab_blog
+      PAYLOAD_SECRET: fablab-payload-secret-dev-local-2024
+      NEXT_PUBLIC_SERVER_URL: http://localhost:9011
+      STORAGE_LIMIT_MB: 500
+      DB_PUSH: "true"
+    ports:
+      - "9011:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - web-media-dev:/app/media
+    networks:
+      - fablab-dev
+
+volumes:
+  fablab-postgres-dev:
+  web-media-dev:
+
+networks:
+  fablab-dev:
+    driver: bridge
