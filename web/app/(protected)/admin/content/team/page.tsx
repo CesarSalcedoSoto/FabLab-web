@@ -598,7 +598,7 @@ export default function TeamMembersPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {/* Habilidades Personales */}
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Habilidades Personales</Label>
+                                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Habilidades Blandas</Label>
                                     <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto">
                                         {allSkills.length === 0 ? (
                                             <p className="text-xs text-gray-400 italic">Sin datos</p>
@@ -1018,7 +1018,7 @@ export default function TeamMembersPage() {
 
                         {/* Habilidades Personales - Tag Input */}
                         <div className="space-y-2">
-                            <Label>Habilidades Personales</Label>
+                            <Label>Habilidades Blandas</Label>
                             <div className="flex flex-wrap gap-1.5 mb-2">
                                 {formData.personalSkills.map((skill, i) => (
                                     <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
@@ -1348,7 +1348,7 @@ export default function TeamMembersPage() {
 
                         {/* Habilidades Personales - Tag Input */}
                         <div className="space-y-2">
-                            <Label>Habilidades Personales</Label>
+                            <Label>Habilidades Blandas</Label>
                             <div className="flex flex-wrap gap-1.5 mb-2">
                                 {formData.personalSkills.map((skill, i) => (
                                     <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">

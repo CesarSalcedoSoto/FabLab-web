@@ -222,6 +222,14 @@ export async function createProject(formData: FormData): Promise<{ success: bool
         try { beneficiaries = JSON.parse(formData.get('beneficiaries') as string || '[]'); } catch { }
         try { meetings = JSON.parse(formData.get('meetings') as string || '[]'); } catch { }
 
+        // Filtrar links vacíos (label y url son required en la colección)
+        links = links.filter((l: any) => l.label?.trim() && l.url?.trim());
+
+        // Filtrar beneficiarios incompletos (tipoBeneficiario, rut, firstName, paternalLastName, rol son required)
+        beneficiaries = beneficiaries.filter((b: any) =>
+            b.tipoBeneficiario?.trim() && b.rut?.trim() && b.firstName?.trim() && b.paternalLastName?.trim() && b.rol?.trim()
+        );
+
         // Formatear creadores - Payload espera IDs numéricos para relaciones
         const creators = rawCreators.map(c => ({
             ...(c.teamMember ? { teamMember: toRelationId(String(c.teamMember)) } : {}),
@@ -400,6 +408,14 @@ export async function updateProject(id: string, formData: FormData): Promise<{ s
         try { externalStaffRaw = JSON.parse(formData.get('externalStaff') as string || '[]'); } catch { }
         try { beneficiaries = JSON.parse(formData.get('beneficiaries') as string || '[]'); } catch { }
         try { meetings = JSON.parse(formData.get('meetings') as string || '[]'); } catch { }
+
+        // Filtrar links vacíos (label y url son required en la colección)
+        links = links.filter((l: any) => l.label?.trim() && l.url?.trim());
+
+        // Filtrar beneficiarios incompletos (tipoBeneficiario, rut, firstName, paternalLastName, rol son required)
+        beneficiaries = beneficiaries.filter((b: any) =>
+            b.tipoBeneficiario?.trim() && b.rut?.trim() && b.firstName?.trim() && b.paternalLastName?.trim() && b.rol?.trim()
+        );
 
         if (!isAdmin(currentUser)) {
             // Non-admin: check they're only using existing technology IDs, not adding new ones

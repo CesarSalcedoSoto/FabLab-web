@@ -875,6 +875,7 @@ export function ContactoPage({
         nombre: data.nombre,
         email: data.email,
         telefono: data.telefono,
+        motivo: data.motivo,
         asunto: data.asunto,
         mensaje: data.mensaje,
       });

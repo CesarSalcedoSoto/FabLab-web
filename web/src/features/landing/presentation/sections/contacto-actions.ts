@@ -7,6 +7,7 @@ interface ContactFormData {
   nombre: string;
   email: string;
   telefono?: string;
+  motivo?: string;
   asunto: string;
   mensaje: string;
 }
@@ -26,6 +27,24 @@ export async function submitContactMessage(data: ContactFormData) {
         estado: "nuevo",
       },
     });
+
+    // Enviar correo electrónico via PHP endpoint
+    try {
+      await fetch("https://fablablosangeles.com/api/send-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: data.nombre,
+          email: data.email,
+          telefono: data.telefono || "",
+          motivo: data.motivo || "",
+          asunto: data.asunto,
+          mensaje: data.mensaje,
+        }),
+      });
+    } catch (emailError) {
+      console.error("Error al enviar correo de notificación:", emailError);
+    }
 
     return {
       success: true,
