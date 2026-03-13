@@ -175,15 +175,11 @@ export async function getProjectsMetrics() {
   try {
     const payload = await getPayload({ config });
 
-    // Proyectos publicados (activos)
+    // Dashboard admin: usar conteo operativo total del CMS para reflejar estado real.
     const { totalDocs: activeProjects } = await payload.find({
       collection: "projects",
-      where: {
-        status: {
-          equals: "published",
-        },
-      },
       limit: 1,
+      overrideAccess: true,
     });
 
     // Calcular tendencia real: proyectos creados este mes
@@ -197,6 +193,7 @@ export async function getProjectsMetrics() {
         },
       },
       limit: 1,
+      overrideAccess: true,
     });
 
     return {
@@ -218,13 +215,10 @@ export async function getActiveProjects() {
 
     const { docs } = await payload.find({
       collection: "projects",
-      where: {
-        status: {
-          equals: "published",
-        },
-      },
+      sort: "-updatedAt",
       limit: 10,
       depth: 1,
+      overrideAccess: true,
     });
 
     return docs.map((doc) => {

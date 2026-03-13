@@ -82,9 +82,17 @@ export function TeamSection() {
   const physical = dataToRender.filter((m) => inferArea(m) === "proyectos-fisicos");
   const design = dataToRender.filter((m) => inferArea(m) === "diseno-animacion");
 
-  const legacy = dataToRender
-    .filter((m) => m.category === "collaborator" || inferArea(m) === "legado")
-    .slice(0, 12);
+  const explicitLegacy = dataToRender.filter(
+    (m) => inferArea(m) === "legado" || m.category === "collaborator",
+  );
+
+  // Si aún no hay miembros marcados para legado, mostramos un fallback automático
+  // para no dejar la sección vacía en home.
+  const legacyFallback = dataToRender
+    .filter((m) => m.category !== "leadership" && m.category !== "docente")
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+  const legacy = (explicitLegacy.length > 0 ? explicitLegacy : legacyFallback).slice(0, 12);
 
   const MemberCard = ({ member, accent }: { member: TeamMember; accent: string }) => (
     <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all">
@@ -270,19 +278,17 @@ export function TeamSection() {
                 </div>
               </div>
 
-              {legacy.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">Legado por Generación</h3>
-                    <span className="text-xs text-gray-500">{legacy.length}</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {legacy.map((member) => (
-                      <MemberCard key={member.id} member={member} accent="ring-amber-400" />
-                    ))}
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">Legado por Generación</h3>
+                  <span className="text-xs text-gray-500">{legacy.length}</span>
                 </div>
-              )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {legacy.map((member) => (
+                    <MemberCard key={member.id} member={member} accent="ring-amber-400" />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
