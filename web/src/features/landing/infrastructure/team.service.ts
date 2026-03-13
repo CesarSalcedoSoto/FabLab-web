@@ -43,6 +43,8 @@ function mapRepoMember(m: any): TeamMemberUI {
     personalSkills: m.personalSkills || [],
     technicalDomain: m.technicalDomain || [],
     homeArea: m.homeArea,
+    isFormerMember: m.isFormerMember,
+    legacyGeneration: m.legacyGeneration,
   };
 }
 

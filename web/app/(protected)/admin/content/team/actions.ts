@@ -36,7 +36,15 @@ export interface TeamMemberData {
     availabilityMode: string;
     weeklySchedule: DaySchedule[];
     homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado' | '';
+    isFormerMember?: boolean;
+    legacyGeneration?: string;
     docenteResponsable?: { id: string; name: string } | null;
+}
+
+const DOMAIN_META_PREFIXES = ['area:', 'status:', 'gen:'];
+
+function stripDomainMeta(domain: string[]) {
+    return domain.filter((d) => !DOMAIN_META_PREFIXES.some((prefix) => d.startsWith(prefix)));
 }
 
 function readHomeAreaFromDomain(domain: string[]): TeamMemberData['homeArea'] {
@@ -62,6 +70,30 @@ function applyHomeAreaToDomain(domain: string[], homeArea?: string) {
         cleaned.unshift(`area:${homeArea}`);
     }
     return Array.from(new Set(cleaned));
+}
+
+function readFormerMemberFromDomain(domain: string[]) {
+    return domain.includes('status:ex');
+}
+
+function readLegacyGenerationFromDomain(domain: string[]) {
+    const raw = domain.find((d) => d.startsWith('gen:'));
+    if (!raw) return '';
+    const value = raw.replace('gen:', '').trim();
+    return /^\d{4}$/.test(value) ? value : '';
+}
+
+function applyLegacyMetaToDomain(domain: string[], opts?: { isFormerMember?: boolean; legacyGeneration?: string }) {
+    const cleaned = domain.filter((d) => !d.startsWith('status:') && !d.startsWith('gen:'));
+    if (!opts?.isFormerMember) {
+        return cleaned;
+    }
+
+    const next = ['status:ex', ...cleaned];
+    if (opts.legacyGeneration && /^\d{4}$/.test(opts.legacyGeneration)) {
+        next.unshift(`gen:${opts.legacyGeneration}`);
+    }
+    return Array.from(new Set(next));
 }
 
 export interface SpecialistSearchFilters {
@@ -90,7 +122,8 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
         });
 
         return members.map((doc: any) => {
-            const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+            const rawTechnicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+            const technicalDomain = stripDomainMeta(rawTechnicalDomain);
 
             return ({
             id: String(doc.id),
@@ -108,7 +141,9 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
             userRole: doc.role || 'viewer',
             personalSkills: doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [],
             technicalDomain,
-            homeArea: readHomeAreaFromDomain(technicalDomain),
+            homeArea: readHomeAreaFromDomain(rawTechnicalDomain),
+            isFormerMember: readFormerMemberFromDomain(rawTechnicalDomain),
+            legacyGeneration: readLegacyGenerationFromDomain(rawTechnicalDomain),
             availabilityMode: doc.availabilityMode || '',
             weeklySchedule: doc.weeklySchedule?.map((d: any) => ({
                 day: d.day,
@@ -147,7 +182,8 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
         });
 
         return members.map((doc: any) => {
-            const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+            const rawTechnicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+            const technicalDomain = stripDomainMeta(rawTechnicalDomain);
 
             return ({
             id: String(doc.id),
@@ -165,7 +201,9 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
             userRole: doc.role,
             personalSkills: doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [],
             technicalDomain,
-            homeArea: readHomeAreaFromDomain(technicalDomain),
+            homeArea: readHomeAreaFromDomain(rawTechnicalDomain),
+            isFormerMember: readFormerMemberFromDomain(rawTechnicalDomain),
+            legacyGeneration: readLegacyGenerationFromDomain(rawTechnicalDomain),
             availabilityMode: doc.availabilityMode || '',
             weeklySchedule: doc.weeklySchedule?.map((d: any) => ({
                 day: d.day,
@@ -317,11 +355,20 @@ export async function createTeamMember(formData: FormData) {
         let technicalDomain = technicalDomainRaw
             ? JSON.parse(technicalDomainRaw).map((s: string) => ({ skill: s }))
             : [];
-        const homeArea = (formData.get('homeArea') as string) || '';
-        const normalizedDomain = applyHomeAreaToDomain(
+        const isFormerMember = formData.get('isFormerMember') === 'true';
+        const legacyGenerationRaw = ((formData.get('legacyGeneration') as string) || '').trim();
+        const legacyGeneration = /^\d{4}$/.test(legacyGenerationRaw) ? legacyGenerationRaw : '';
+        const homeArea = isFormerMember
+            ? 'legado'
+            : ((formData.get('homeArea') as string) || '');
+        let normalizedDomain = applyHomeAreaToDomain(
             technicalDomain.map((s: any) => s.skill),
             homeArea || undefined,
         );
+        normalizedDomain = applyLegacyMetaToDomain(normalizedDomain, {
+            isFormerMember,
+            legacyGeneration,
+        });
         technicalDomain = normalizedDomain.map((s) => ({ skill: s }));
         const weeklySchedule = weeklyScheduleRaw
             ? JSON.parse(weeklyScheduleRaw)
@@ -435,12 +482,21 @@ export async function updateTeamMember(id: string, formData: FormData) {
         let technicalDomain = technicalDomainRaw
             ? JSON.parse(technicalDomainRaw).map((s: string) => ({ skill: s }))
             : undefined;
-        const homeArea = (formData.get('homeArea') as string) || '';
+        const isFormerMember = formData.get('isFormerMember') === 'true';
+        const legacyGenerationRaw = ((formData.get('legacyGeneration') as string) || '').trim();
+        const legacyGeneration = /^\d{4}$/.test(legacyGenerationRaw) ? legacyGenerationRaw : '';
+        const homeArea = isFormerMember
+            ? 'legado'
+            : ((formData.get('homeArea') as string) || '');
         if (technicalDomain) {
-            const normalizedDomain = applyHomeAreaToDomain(
+            let normalizedDomain = applyHomeAreaToDomain(
                 technicalDomain.map((s: any) => s.skill),
                 homeArea || undefined,
             );
+            normalizedDomain = applyLegacyMetaToDomain(normalizedDomain, {
+                isFormerMember,
+                legacyGeneration,
+            });
             technicalDomain = normalizedDomain.map((s) => ({ skill: s }));
         }
         const weeklySchedule = weeklyScheduleRaw

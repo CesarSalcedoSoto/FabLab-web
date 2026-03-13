@@ -16,6 +16,8 @@ interface TeamMember {
   bio: string;
   category?: "leadership" | "specialist" | "collaborator" | "docente";
   homeArea?: "coordinacion" | "docente" | "proyectos-digitales" | "proyectos-fisicos" | "diseno-animacion" | "legado";
+  isFormerMember?: boolean;
+  legacyGeneration?: string;
   technicalDomain?: string[];
   imagePosition?: string;
   social?: {
@@ -29,6 +31,7 @@ export function TeamSection() {
   const [members, setMembers] = useState<TeamMemberUI[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"liderazgo" | "equipo">("liderazgo");
+  const [activeLegacyGeneration, setActiveLegacyGeneration] = useState<string>("all");
 
   useEffect(() => {
     fetchTeamMembers()
@@ -48,6 +51,8 @@ export function TeamSection() {
     bio: m.bio || "",
     category: m.category,
     homeArea: m.homeArea,
+    isFormerMember: m.isFormerMember,
+    legacyGeneration: m.legacyGeneration,
     technicalDomain: m.technicalDomain || [],
     social: {
       linkedin: m.linkedin,
@@ -83,7 +88,7 @@ export function TeamSection() {
   const design = dataToRender.filter((m) => inferArea(m) === "diseno-animacion");
 
   const explicitLegacy = dataToRender.filter(
-    (m) => inferArea(m) === "legado" || m.category === "collaborator",
+    (m) => inferArea(m) === "legado" || m.isFormerMember,
   );
 
   // Si aún no hay miembros marcados para legado, mostramos un fallback automático
@@ -93,6 +98,19 @@ export function TeamSection() {
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   const legacy = (explicitLegacy.length > 0 ? explicitLegacy : legacyFallback).slice(0, 12);
+
+  const legacyGenerations = Array.from(
+    new Set(
+      legacy
+        .map((m) => (m.legacyGeneration || "").trim())
+        .filter((year) => /^\d{4}$/.test(year)),
+    ),
+  ).sort((a, b) => Number(b) - Number(a));
+
+  const filteredLegacy =
+    activeLegacyGeneration === "all"
+      ? legacy
+      : legacy.filter((m) => m.legacyGeneration === activeLegacyGeneration);
 
   const MemberCard = ({ member, accent }: { member: TeamMember; accent: string }) => (
     <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all">
@@ -279,13 +297,47 @@ export function TeamSection() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <h3 className="text-base font-semibold text-gray-900">Legado por Generación</h3>
-                  <span className="text-xs text-gray-500">{legacy.length}</span>
+                  <span className="text-xs text-gray-500">{filteredLegacy.length}</span>
                 </div>
+                {legacyGenerations.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveLegacyGeneration("all")}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        activeLegacyGeneration === "all"
+                          ? "bg-orange-500 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {legacyGenerations.map((year) => (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => setActiveLegacyGeneration(year)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          activeLegacyGeneration === year
+                            ? "bg-orange-500 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {legacy.map((member) => (
-                    <MemberCard key={member.id} member={member} accent="ring-amber-400" />
+                  {filteredLegacy.map((member) => (
+                    <div key={member.id} className="space-y-1">
+                      <MemberCard member={member} accent="ring-amber-400" />
+                      {member.legacyGeneration && (
+                        <p className="text-[11px] text-gray-500 px-1">Generación {member.legacyGeneration}</p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

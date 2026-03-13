@@ -104,6 +104,8 @@ interface TeamMemberData {
     personalSkills?: string[];
     technicalDomain?: string[];
     homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado' | '';
+    isFormerMember?: boolean;
+    legacyGeneration?: string;
     availabilityMode?: string;
     weeklySchedule?: DaySchedule[];
     docenteResponsable?: { id: string; name: string } | null;
@@ -138,6 +140,8 @@ export default function TeamMembersPage() {
         personalSkills: [] as string[],
         technicalDomain: [] as string[],
         homeArea: '' as TeamMemberData['homeArea'],
+        isFormerMember: false,
+        legacyGeneration: "",
         availabilityMode: "" as string,
         weeklySchedule: [] as DaySchedule[],
         docenteResponsable: "" as string,
@@ -266,6 +270,8 @@ export default function TeamMembersPage() {
             personalSkills: [],
             technicalDomain: [],
             homeArea: '',
+            isFormerMember: false,
+            legacyGeneration: "",
             availabilityMode: "",
             weeklySchedule: [],
             docenteResponsable: "",
@@ -338,6 +344,8 @@ export default function TeamMembersPage() {
             if (formData.homeArea) {
                 form.append('homeArea', formData.homeArea);
             }
+            form.append('isFormerMember', String(formData.isFormerMember));
+            form.append('legacyGeneration', formData.legacyGeneration || '');
             if (formData.availabilityMode) {
                 form.append('availabilityMode', formData.availabilityMode);
             }
@@ -402,6 +410,8 @@ export default function TeamMembersPage() {
             if (formData.homeArea) {
                 form.append('homeArea', formData.homeArea);
             }
+            form.append('isFormerMember', String(formData.isFormerMember));
+            form.append('legacyGeneration', formData.legacyGeneration || '');
             if (formData.availabilityMode) {
                 form.append('availabilityMode', formData.availabilityMode);
             }
@@ -480,6 +490,8 @@ export default function TeamMembersPage() {
             personalSkills: member.personalSkills || [],
             technicalDomain: member.technicalDomain || [],
             homeArea: member.homeArea || '',
+            isFormerMember: member.isFormerMember || false,
+            legacyGeneration: member.legacyGeneration || "",
             availabilityMode: member.availabilityMode || "",
             weeklySchedule: member.weeklySchedule || [],
             docenteResponsable: member.docenteResponsable?.id || "",
@@ -1010,6 +1022,7 @@ export default function TeamMembersPage() {
                             <Select
                                 value={formData.homeArea || '__auto__'}
                                 onValueChange={(value) => setFormData(prev => ({ ...prev, homeArea: value === '__auto__' ? '' : value as TeamMemberData['homeArea'] }))}
+                                disabled={!!formData.isFormerMember}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Asignación automática" />
@@ -1024,6 +1037,40 @@ export default function TeamMembersPage() {
                                     <SelectItem value="legado">Legado por Generación</SelectItem>
                                 </SelectContent>
                             </Select>
+                            {formData.isFormerMember && (
+                                <p className="text-xs text-gray-500">Los ex miembros se muestran automáticamente en Legado por Generación.</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label htmlFor="is-former-member" className="text-sm font-medium">Marcar como ex miembro (Legado)</Label>
+                                    <p className="text-xs text-gray-600 mt-1">Activa esta opción para mover el perfil a Legado por Generación.</p>
+                                </div>
+                                <Switch
+                                    id="is-former-member"
+                                    checked={!!formData.isFormerMember}
+                                    onCheckedChange={(checked) => setFormData(prev => ({
+                                        ...prev,
+                                        isFormerMember: checked,
+                                        homeArea: checked ? 'legado' : prev.homeArea,
+                                    }))}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="legacy-generation">Generación (año)</Label>
+                                <Input
+                                    id="legacy-generation"
+                                    type="number"
+                                    min={1990}
+                                    max={2100}
+                                    placeholder="Ej: 2024"
+                                    value={formData.legacyGeneration || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, legacyGeneration: e.target.value }))}
+                                    disabled={!formData.isFormerMember}
+                                />
+                            </div>
                         </div>
 
                         {/* Estado de Estudios */}
@@ -1361,6 +1408,7 @@ export default function TeamMembersPage() {
                             <Select
                                 value={formData.homeArea || '__auto__'}
                                 onValueChange={(value) => setFormData(prev => ({ ...prev, homeArea: value === '__auto__' ? '' : value as TeamMemberData['homeArea'] }))}
+                                disabled={!!formData.isFormerMember}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Asignación automática" />
@@ -1375,6 +1423,40 @@ export default function TeamMembersPage() {
                                     <SelectItem value="legado">Legado por Generación</SelectItem>
                                 </SelectContent>
                             </Select>
+                            {formData.isFormerMember && (
+                                <p className="text-xs text-gray-500">Los ex miembros se muestran automáticamente en Legado por Generación.</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label htmlFor="edit-is-former-member" className="text-sm font-medium">Marcar como ex miembro (Legado)</Label>
+                                    <p className="text-xs text-gray-600 mt-1">Activa esta opción para mover el perfil a Legado por Generación.</p>
+                                </div>
+                                <Switch
+                                    id="edit-is-former-member"
+                                    checked={!!formData.isFormerMember}
+                                    onCheckedChange={(checked) => setFormData(prev => ({
+                                        ...prev,
+                                        isFormerMember: checked,
+                                        homeArea: checked ? 'legado' : prev.homeArea,
+                                    }))}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="edit-legacy-generation">Generación (año)</Label>
+                                <Input
+                                    id="edit-legacy-generation"
+                                    type="number"
+                                    min={1990}
+                                    max={2100}
+                                    placeholder="Ej: 2024"
+                                    value={formData.legacyGeneration || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, legacyGeneration: e.target.value }))}
+                                    disabled={!formData.isFormerMember}
+                                />
+                            </div>
                         </div>
 
                         {/* Estado de Estudios */}

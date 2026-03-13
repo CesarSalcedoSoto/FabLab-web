@@ -38,7 +38,11 @@ export interface TeamMember {
     personalSkills: string[];
     technicalDomain: string[];
     homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado';
+    isFormerMember?: boolean;
+    legacyGeneration?: string;
 }
+
+const DOMAIN_META_PREFIXES = ['area:', 'status:', 'gen:'];
 
 function readHomeAreaTag(domains: string[]): TeamMember['homeArea'] {
     const areaTag = domains.find((d) => d.startsWith('area:'));
@@ -55,6 +59,17 @@ function readHomeAreaTag(domains: string[]): TeamMember['homeArea'] {
         return value;
     }
     return undefined;
+}
+
+function readFormerMemberTag(domains: string[]) {
+    return domains.includes('status:ex');
+}
+
+function readLegacyGenerationTag(domains: string[]) {
+    const raw = domains.find((d) => d.startsWith('gen:'));
+    if (!raw) return undefined;
+    const year = raw.replace('gen:', '').trim();
+    return /^\d{4}$/.test(year) ? year : undefined;
 }
 
 /**
@@ -78,7 +93,8 @@ function normalizeMediaUrl(url: string | undefined | null): string | undefined {
  * Transforma datos de Payload a tipo TeamMember
  */
 function transformMember(doc: any): TeamMember {
-    const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+    const rawTechnicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+    const technicalDomain = rawTechnicalDomain.filter((d: string) => !DOMAIN_META_PREFIXES.some((prefix) => d.startsWith(prefix)));
     const personalSkills = doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [];
 
     return {
@@ -93,7 +109,9 @@ function transformMember(doc: any): TeamMember {
         achievements: doc.achievements?.map((a: any) => a.achievement) || [],
         personalSkills,
         technicalDomain,
-        homeArea: readHomeAreaTag(technicalDomain),
+        homeArea: readHomeAreaTag(rawTechnicalDomain),
+        isFormerMember: readFormerMemberTag(rawTechnicalDomain),
+        legacyGeneration: readLegacyGenerationTag(rawTechnicalDomain),
         social: {
             email: doc.email,
             linkedin: doc.linkedin,

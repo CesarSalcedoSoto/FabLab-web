@@ -59,4 +59,6 @@ export interface TeamMemberUI {
   personalSkills?: string[];
   technicalDomain?: string[];
   homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado';
+  isFormerMember?: boolean;
+  legacyGeneration?: string;
 }
