@@ -306,6 +306,11 @@ function formatRelativeTime(date: Date): string {
 export async function getPublicRecentActivity(): Promise<PublicRecentActivityItem[]> {
   const activities: PublicRecentActivityItem[] = [];
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday);
+  endOfToday.setDate(endOfToday.getDate() + 1);
+
   try {
     const payload = await getPayload({ config });
 
@@ -314,12 +319,15 @@ export async function getPublicRecentActivity(): Promise<PublicRecentActivityIte
       const { docs: usages } = await payload.find({
         collection: "equipment-usage",
         sort: "-startTime",
-        limit: 20,
+        limit: 200,
         depth: 1,
       });
       for (const usage of usages) {
         const u = usage as any;
         const startTime = new Date(u.startTime);
+        if (startTime < startOfToday || startTime >= endOfToday) {
+          continue;
+        }
         const isActive = u.status === "active";
         const userName = u.userName || (typeof u.user === "object" ? u.user?.name : "Usuario");
         activities.push({
@@ -348,15 +356,13 @@ export async function getPublicRecentActivity(): Promise<PublicRecentActivityIte
         collection: "users",
         where: { showInTeam: { equals: true } },
         sort: "-createdAt",
-        limit: 10,
+        limit: 100,
         depth: 0,
       });
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       for (const member of newMembers) {
         const m = member as any;
         const createdAt = new Date(m.createdAt);
-        if (createdAt > thirtyDaysAgo) {
+        if (createdAt >= startOfToday && createdAt < endOfToday) {
           activities.push({
             id: `member-${m.id}`,
             type: "new_member",
@@ -372,7 +378,7 @@ export async function getPublicRecentActivity(): Promise<PublicRecentActivityIte
     }
 
     activities.sort((a, b) => b.timeRaw.getTime() - a.timeRaw.getTime());
-    return activities.slice(0, 10);
+    return activities;
   } catch {
     return [];
   }
