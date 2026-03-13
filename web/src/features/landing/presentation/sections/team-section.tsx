@@ -107,6 +107,16 @@ export function TeamSection() {
     ),
   ).sort((a, b) => Number(b) - Number(a));
 
+  const fallbackGenerations = [
+    String(new Date().getFullYear()),
+    String(new Date().getFullYear() - 1),
+    String(new Date().getFullYear() - 2),
+    String(new Date().getFullYear() - 3),
+    String(new Date().getFullYear() - 4),
+  ];
+
+  const generationFilters = legacyGenerations.length > 0 ? legacyGenerations : fallbackGenerations;
+
   const filteredLegacy =
     activeLegacyGeneration === "all"
       ? legacy
@@ -301,35 +311,33 @@ export function TeamSection() {
                   <h3 className="text-base font-semibold text-gray-900">Legado por Generación</h3>
                   <span className="text-xs text-gray-500">{filteredLegacy.length}</span>
                 </div>
-                {legacyGenerations.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveLegacyGeneration("all")}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      activeLegacyGeneration === "all"
+                        ? "bg-orange-500 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {generationFilters.map((year) => (
                     <button
+                      key={year}
                       type="button"
-                      onClick={() => setActiveLegacyGeneration("all")}
+                      onClick={() => setActiveLegacyGeneration(year)}
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                        activeLegacyGeneration === "all"
+                        activeLegacyGeneration === year
                           ? "bg-orange-500 text-white"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      Todos
+                      {year}
                     </button>
-                    {legacyGenerations.map((year) => (
-                      <button
-                        key={year}
-                        type="button"
-                        onClick={() => setActiveLegacyGeneration(year)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                          activeLegacyGeneration === year
-                            ? "bg-orange-500 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
-                        {year}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  ))}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {filteredLegacy.map((member) => (
                     <div key={member.id} className="space-y-1">

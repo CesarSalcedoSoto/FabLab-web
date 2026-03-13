@@ -2,10 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/cards/card
 import {
   Activity,
   Home,
+  FileText,
+  Wrench,
+  Boxes,
+  Users,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/shared/ui/buttons/button";
 import Link from "next/link";
 import {
+  getPublicDashboardMetrics,
   getPublicRecentActivity,
 } from "./actions";
 import { PanelCalendarWidget } from "./calendar-widget";
@@ -20,7 +28,10 @@ export const metadata = {
 
 export default async function PanelPage() {
   noStore();
-  const recentActivities = await getPublicRecentActivity();
+  const [metrics, recentActivities] = await Promise.all([
+    getPublicDashboardMetrics(),
+    getPublicRecentActivity(),
+  ]);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("es-CL", {
@@ -50,6 +61,98 @@ export default async function PanelPage() {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Métricas principales */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="h-full">
+          <CardHeader className="p-3 sm:pb-2 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-500" />
+              Proyectos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.activeProjects}</div>
+            <div className="flex items-center text-xs text-green-600">
+              {metrics.projectsTrend > 0 ? (
+                <>
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">+{metrics.projectsTrend} nuevo{metrics.projectsTrend !== 1 ? "s" : ""} este mes</span>
+                  <span className="sm:hidden">+{metrics.projectsTrend} este mes</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-3 w-3 mr-1" />
+                  <span>Sin cambios este mes</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader className="p-3 sm:pb-2 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-purple-500" />
+              Equipos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.totalEquipment}</div>
+            <div className="flex items-center text-xs text-purple-600">
+              <Activity className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">{metrics.equipmentInUse} en uso actualmente</span>
+              <span className="sm:hidden">{metrics.equipmentInUse} en uso</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader className="p-3 sm:pb-2 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+              <Boxes className="h-4 w-4 text-orange-500" />
+              Insumos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">{metrics.totalInventoryItems}</div>
+            <div className="flex items-center text-xs text-orange-600">
+              {metrics.lowStockItems > 0 ? (
+                <>
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">{metrics.lowStockItems} con bajo stock</span>
+                  <span className="sm:hidden">{metrics.lowStockItems} bajo stock</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">{metrics.totalInventoryStock} unidades en stock</span>
+                  <span className="sm:hidden">{metrics.totalInventoryStock} uds.</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader className="p-3 sm:pb-2 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
+              <Users className="h-4 w-4 text-green-500" />
+              Activos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">
+              {metrics.activeSpecialists}<span className="text-base sm:text-lg text-gray-400 font-normal">/{metrics.totalSpecialists}</span>
+            </div>
+            <div className="flex items-center text-xs text-green-600">
+              <Users className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Miembros visibles en web</span>
+              <span className="sm:hidden">Visibles</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ============================================ */}

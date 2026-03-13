@@ -36,6 +36,8 @@ export function Navbar() {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const { user, logout } = useAuth();
+    const pathname = usePathname();
+    const isPanelRoute = pathname === "/panel";
 
     // Close user menu when clicking outside
     useEffect(() => {
@@ -70,6 +72,7 @@ export function Navbar() {
                 <Link href="/admin" className="absolute right-0 top-0 w-6 h-6 opacity-0 z-50" aria-hidden="true" tabIndex={-1} />
 
                 {/* Desktop Navigation Left */}
+                {!isPanelRoute && (
                 <div className="hidden lg:flex absolute left-0 top-0 h-11 w-[40%] justify-center items-center space-x-6 z-20 px-8">
                     {navigationItemsLeft.map((item) => (
                         <Link
@@ -82,6 +85,7 @@ export function Navbar() {
                         </Link>
                     ))}
                 </div>
+                )}
 
                 {/* Brand - siempre visible en el centro */}
                 <div className="hidden lg:flex absolute top-4 left-1/2 transform -translate-x-1/2 z-50 items-center justify-center">
@@ -94,6 +98,7 @@ export function Navbar() {
                 </div>
 
                 {/* Desktop Navigation Right */}
+                {!isPanelRoute && (
                 <div className="hidden lg:flex absolute right-0 top-0 h-11 w-[40%] justify-center items-center space-x-6 z-20 px-8">
                     {navigationItemsRight.map((item) => (
                         <Link
@@ -166,6 +171,7 @@ export function Navbar() {
                         </Button>
                     )}
                 </div>
+                )}
 
                 {/* Mobile Menu Button */}
                 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
