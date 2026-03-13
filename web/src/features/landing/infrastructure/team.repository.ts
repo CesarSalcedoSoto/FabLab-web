@@ -35,6 +35,26 @@ export interface TeamMember {
     };
     order: number;
     active: boolean;
+    personalSkills: string[];
+    technicalDomain: string[];
+    homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado';
+}
+
+function readHomeAreaTag(domains: string[]): TeamMember['homeArea'] {
+    const areaTag = domains.find((d) => d.startsWith('area:'));
+    if (!areaTag) return undefined;
+    const value = areaTag.replace('area:', '');
+    if (
+        value === 'coordinacion' ||
+        value === 'docente' ||
+        value === 'proyectos-digitales' ||
+        value === 'proyectos-fisicos' ||
+        value === 'diseno-animacion' ||
+        value === 'legado'
+    ) {
+        return value;
+    }
+    return undefined;
 }
 
 /**
@@ -58,6 +78,9 @@ function normalizeMediaUrl(url: string | undefined | null): string | undefined {
  * Transforma datos de Payload a tipo TeamMember
  */
 function transformMember(doc: any): TeamMember {
+    const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+    const personalSkills = doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [];
+
     return {
         id: String(doc.id),
         name: doc.name,
@@ -68,6 +91,9 @@ function transformMember(doc: any): TeamMember {
         bio: doc.bio,
         experience: doc.experience,
         achievements: doc.achievements?.map((a: any) => a.achievement) || [],
+        personalSkills,
+        technicalDomain,
+        homeArea: readHomeAreaTag(technicalDomain),
         social: {
             email: doc.email,
             linkedin: doc.linkedin,

@@ -44,6 +44,7 @@ export interface TeamMemberUI {
   id: number | string;
   name: string;
   role?: string;
+  category?: 'leadership' | 'specialist' | 'collaborator' | 'docente';
   specialty?: string;
   bio?: string;
   experience?: string;
@@ -55,4 +56,7 @@ export interface TeamMemberUI {
   order?: number;
   isDirector?: boolean;
   image?: string;
+  personalSkills?: string[];
+  technicalDomain?: string[];
+  homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado';
 }

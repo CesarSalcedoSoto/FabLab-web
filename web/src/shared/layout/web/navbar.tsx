@@ -160,7 +160,11 @@ export function Navbar() {
                                 </div>
                             </div>
                         </div>
-                    ) : null}
+                    ) : (
+                        <Button asChild size="sm" className="h-8 rounded-full bg-gray-900 hover:bg-gray-800 text-white px-4">
+                            <Link href="/login">Iniciar sesión</Link>
+                        </Button>
+                    )}
                 </div>
 
                 {/* Mobile Menu Button */}
@@ -243,6 +247,18 @@ export function Navbar() {
                                             <LogOut className="w-4 h-4 mr-3" />
                                             Cerrar sesión
                                         </Button>
+                                    </div>
+                                )}
+
+                                {!user && (
+                                    <div className="pt-3 border-t mt-2">
+                                        <Link
+                                            href="/login"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="flex items-center justify-center text-base font-medium bg-gray-900 text-white transition-colors duration-200 p-2 rounded-lg hover:bg-gray-800"
+                                        >
+                                            Iniciar sesión
+                                        </Link>
                                     </div>
                                 )}
                             </div>

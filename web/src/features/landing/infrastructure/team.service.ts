@@ -28,6 +28,7 @@ function mapRepoMember(m: any): TeamMemberUI {
     id: m.id,
     name: m.name,
     role: m.role,
+    category: m.category,
     specialty: m.specialty,
     bio: m.bio,
     experience: m.experience,
@@ -39,6 +40,9 @@ function mapRepoMember(m: any): TeamMemberUI {
     order: m.order,
     isDirector: m.category === 'leadership',
     image: m.image,
+    personalSkills: m.personalSkills || [],
+    technicalDomain: m.technicalDomain || [],
+    homeArea: m.homeArea,
   };
 }
 

@@ -103,6 +103,7 @@ interface TeamMemberData {
     educationStatus: string;
     personalSkills?: string[];
     technicalDomain?: string[];
+    homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado' | '';
     availabilityMode?: string;
     weeklySchedule?: DaySchedule[];
     docenteResponsable?: { id: string; name: string } | null;
@@ -136,6 +137,7 @@ export default function TeamMembersPage() {
         image: null as File | null,
         personalSkills: [] as string[],
         technicalDomain: [] as string[],
+        homeArea: '' as TeamMemberData['homeArea'],
         availabilityMode: "" as string,
         weeklySchedule: [] as DaySchedule[],
         docenteResponsable: "" as string,
@@ -263,6 +265,7 @@ export default function TeamMembersPage() {
             image: null,
             personalSkills: [],
             technicalDomain: [],
+            homeArea: '',
             availabilityMode: "",
             weeklySchedule: [],
             docenteResponsable: "",
@@ -332,6 +335,9 @@ export default function TeamMembersPage() {
             form.append('isAdmin', String(formData.isAdmin));
             form.append('personalSkills', JSON.stringify(formData.personalSkills));
             form.append('technicalDomain', JSON.stringify(formData.technicalDomain));
+            if (formData.homeArea) {
+                form.append('homeArea', formData.homeArea);
+            }
             if (formData.availabilityMode) {
                 form.append('availabilityMode', formData.availabilityMode);
             }
@@ -393,6 +399,9 @@ export default function TeamMembersPage() {
             form.append('isAdmin', String(formData.isAdmin));
             form.append('personalSkills', JSON.stringify(formData.personalSkills));
             form.append('technicalDomain', JSON.stringify(formData.technicalDomain));
+            if (formData.homeArea) {
+                form.append('homeArea', formData.homeArea);
+            }
             if (formData.availabilityMode) {
                 form.append('availabilityMode', formData.availabilityMode);
             }
@@ -470,6 +479,7 @@ export default function TeamMembersPage() {
             isAdmin: member.userRole === 'admin',
             personalSkills: member.personalSkills || [],
             technicalDomain: member.technicalDomain || [],
+            homeArea: member.homeArea || '',
             availabilityMode: member.availabilityMode || "",
             weeklySchedule: member.weeklySchedule || [],
             docenteResponsable: member.docenteResponsable?.id || "",
@@ -995,6 +1005,27 @@ export default function TeamMembersPage() {
                             </Select>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label>Ubicación en Organigrama (Home)</Label>
+                            <Select
+                                value={formData.homeArea || '__auto__'}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, homeArea: value === '__auto__' ? '' : value as TeamMemberData['homeArea'] }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Asignación automática" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__auto__">Automático según cargo/categoría</SelectItem>
+                                    <SelectItem value="coordinacion">Coordinadores</SelectItem>
+                                    <SelectItem value="docente">Docentes Mentores</SelectItem>
+                                    <SelectItem value="proyectos-digitales">Proyectos Digitales</SelectItem>
+                                    <SelectItem value="proyectos-fisicos">Proyectos Físicos</SelectItem>
+                                    <SelectItem value="diseno-animacion">Diseño y Animación</SelectItem>
+                                    <SelectItem value="legado">Legado por Generación</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         {/* Estado de Estudios */}
                         <div className="space-y-2">
                             <Label>Estado de Estudios</Label>
@@ -1321,6 +1352,27 @@ export default function TeamMembersPage() {
                                     <SelectItem value="specialist">Especialista</SelectItem>
                                     <SelectItem value="collaborator">Colaborador</SelectItem>
                                     <SelectItem value="docente">Docente Responsable</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Ubicación en Organigrama (Home)</Label>
+                            <Select
+                                value={formData.homeArea || '__auto__'}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, homeArea: value === '__auto__' ? '' : value as TeamMemberData['homeArea'] }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Asignación automática" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__auto__">Automático según cargo/categoría</SelectItem>
+                                    <SelectItem value="coordinacion">Coordinadores</SelectItem>
+                                    <SelectItem value="docente">Docentes Mentores</SelectItem>
+                                    <SelectItem value="proyectos-digitales">Proyectos Digitales</SelectItem>
+                                    <SelectItem value="proyectos-fisicos">Proyectos Físicos</SelectItem>
+                                    <SelectItem value="diseno-animacion">Diseño y Animación</SelectItem>
+                                    <SelectItem value="legado">Legado por Generación</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

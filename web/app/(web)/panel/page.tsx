@@ -4,15 +4,10 @@ import {
   Activity,
   FileText,
   Wrench,
-  Clock,
-  CloudUpload,
   TrendingUp,
   AlertCircle,
   CheckCircle,
   Boxes,
-  Mail,
-  ClipboardList,
-  ArrowUpRight,
   BarChart3,
   PieChart,
   Zap,
@@ -22,11 +17,10 @@ import { Button } from "@/shared/ui/buttons/button";
 import Link from "next/link";
 import {
   getPublicDashboardMetrics,
-  getPublicActiveProjects,
-  getPublicActiveSpecialists,
   getPublicRecentActivity,
 } from "./actions";
 import { PanelCalendarWidget } from "./calendar-widget";
+import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +38,8 @@ function formatBytes(bytes: number): string {
 }
 
 export default async function PanelPage() {
+  noStore();
   const metrics = await getPublicDashboardMetrics();
-  const activeProjectsList = await getPublicActiveProjects();
-  const activeSpecialistsList = await getPublicActiveSpecialists();
   const recentActivities = await getPublicRecentActivity();
 
   const storageUsagePercent =
@@ -182,69 +175,6 @@ export default async function PanelPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      {/* ============================================ */}
-      {/* SEGUNDA FILA: Alertas + Métricas secundarias */}
-      {/* ============================================ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Contacto */}
-        <Card className="h-full">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${metrics.newContactMessages > 0 ? 'bg-red-100' : 'bg-sky-100'}`}>
-              <Mail className={`h-5 w-5 ${metrics.newContactMessages > 0 ? 'text-red-600' : 'text-sky-600'}`} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{metrics.newContactMessages}</p>
-              <p className="text-xs text-gray-500">Mensajes nuevos</p>
-            </div>
-            {metrics.newContactMessages > 0 && (
-              <span className="ml-auto w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Solicitudes */}
-        <Card className="h-full">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${metrics.pendingSolicitudes > 0 ? 'bg-amber-100' : 'bg-yellow-50'}`}>
-              <ClipboardList className={`h-5 w-5 ${metrics.pendingSolicitudes > 0 ? 'text-amber-600' : 'text-yellow-500'}`} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{metrics.pendingSolicitudes}</p>
-              <p className="text-xs text-gray-500">Solicitudes pendientes</p>
-            </div>
-            {metrics.pendingSolicitudes > 0 && (
-              <span className="ml-auto w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Reservas */}
-        <Card className="h-full">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-teal-100">
-              <Clock className="h-5 w-5 text-teal-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">Salas</p>
-              <p className="text-xs text-gray-500">Reservar salas</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Almacenamiento */}
-        <Card className="h-full">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-100">
-              <CloudUpload className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{metrics.storageFiles}</p>
-              <p className="text-xs text-gray-500">Archivos subidos</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* ============================================ */}

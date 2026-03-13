@@ -89,10 +89,11 @@ async function getSpecialistsMetrics() {
 async function getProjectsMetrics() {
   try {
     const payload = await getPayload({ config });
+    // Panel publico: contar todos los proyectos visibles para reflejar el estado real del CMS.
     const { totalDocs: activeProjects } = await payload.find({
       collection: "projects",
-      where: { status: { equals: "published" } },
       limit: 1,
+      overrideAccess: true,
     });
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -100,6 +101,7 @@ async function getProjectsMetrics() {
       collection: "projects",
       where: { createdAt: { greater_than_equal: startOfMonth } },
       limit: 1,
+      overrideAccess: true,
     });
     return { active: activeProjects, trend: newThisMonth };
   } catch (error) {
@@ -241,9 +243,11 @@ export async function getPublicActiveProjects(): Promise<PublicActiveProject[]> 
     const payload = await getPayload({ config });
     const { docs } = await payload.find({
       collection: "projects",
-      where: { status: { equals: "published" } },
+      // Mostrar proyectos recientes del CMS sin filtrar por estado para panel operativo.
+      sort: "-updatedAt",
       limit: 10,
       depth: 0,
+      overrideAccess: true,
     });
     return docs.map((doc: any) => ({
       id: String(doc.id),

@@ -35,7 +35,33 @@ export interface TeamMemberData {
     technicalDomain: string[];
     availabilityMode: string;
     weeklySchedule: DaySchedule[];
+    homeArea?: 'coordinacion' | 'docente' | 'proyectos-digitales' | 'proyectos-fisicos' | 'diseno-animacion' | 'legado' | '';
     docenteResponsable?: { id: string; name: string } | null;
+}
+
+function readHomeAreaFromDomain(domain: string[]): TeamMemberData['homeArea'] {
+    const raw = domain.find((d) => d.startsWith('area:'));
+    if (!raw) return '';
+    const value = raw.replace('area:', '');
+    if (
+        value === 'coordinacion' ||
+        value === 'docente' ||
+        value === 'proyectos-digitales' ||
+        value === 'proyectos-fisicos' ||
+        value === 'diseno-animacion' ||
+        value === 'legado'
+    ) {
+        return value;
+    }
+    return '';
+}
+
+function applyHomeAreaToDomain(domain: string[], homeArea?: string) {
+    const cleaned = domain.filter((d) => !d.startsWith('area:'));
+    if (homeArea) {
+        cleaned.unshift(`area:${homeArea}`);
+    }
+    return Array.from(new Set(cleaned));
 }
 
 export interface SpecialistSearchFilters {
@@ -63,7 +89,10 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
             sort: 'name',
         });
 
-        return members.map((doc: any) => ({
+        return members.map((doc: any) => {
+            const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+
+            return ({
             id: String(doc.id),
             name: doc.name || 'Sin nombre',
             email: doc.email,
@@ -78,7 +107,8 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
             active: doc.showInTeam === true,
             userRole: doc.role || 'viewer',
             personalSkills: doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [],
-            technicalDomain: doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [],
+            technicalDomain,
+            homeArea: readHomeAreaFromDomain(technicalDomain),
             availabilityMode: doc.availabilityMode || '',
             weeklySchedule: doc.weeklySchedule?.map((d: any) => ({
                 day: d.day,
@@ -91,7 +121,8 @@ export async function getAllTeamUsers(): Promise<TeamMemberData[]> {
             docenteResponsable: doc.docenteResponsable && typeof doc.docenteResponsable === 'object'
                 ? { id: String(doc.docenteResponsable.id), name: doc.docenteResponsable.name }
                 : null,
-        }));
+        });
+        });
     } catch (error) {
         console.error("[TeamActions] Error obteniendo todos los usuarios:", error);
         return [];
@@ -115,7 +146,10 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
             sort: 'name',
         });
 
-        return members.map((doc: any) => ({
+        return members.map((doc: any) => {
+            const technicalDomain = doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [];
+
+            return ({
             id: String(doc.id),
             name: doc.name,
             email: doc.email,
@@ -130,7 +164,8 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
             active: doc.showInTeam !== false,
             userRole: doc.role,
             personalSkills: doc.personalSkills?.map((s: any) => s.skill).filter(Boolean) || [],
-            technicalDomain: doc.technicalDomain?.map((s: any) => s.skill).filter(Boolean) || [],
+            technicalDomain,
+            homeArea: readHomeAreaFromDomain(technicalDomain),
             availabilityMode: doc.availabilityMode || '',
             weeklySchedule: doc.weeklySchedule?.map((d: any) => ({
                 day: d.day,
@@ -143,7 +178,8 @@ export async function getTeamMembers(): Promise<TeamMemberData[]> {
             docenteResponsable: doc.docenteResponsable && typeof doc.docenteResponsable === 'object'
                 ? { id: String(doc.docenteResponsable.id), name: doc.docenteResponsable.name }
                 : null,
-        }));
+        });
+        });
     } catch (error) {
         console.error("[TeamActions] Error obteniendo miembros del equipo:", error);
         return [];
@@ -278,9 +314,15 @@ export async function createTeamMember(formData: FormData) {
         const personalSkills = personalSkillsRaw
             ? JSON.parse(personalSkillsRaw).map((s: string) => ({ skill: s }))
             : [];
-        const technicalDomain = technicalDomainRaw
+        let technicalDomain = technicalDomainRaw
             ? JSON.parse(technicalDomainRaw).map((s: string) => ({ skill: s }))
             : [];
+        const homeArea = (formData.get('homeArea') as string) || '';
+        const normalizedDomain = applyHomeAreaToDomain(
+            technicalDomain.map((s: any) => s.skill),
+            homeArea || undefined,
+        );
+        technicalDomain = normalizedDomain.map((s) => ({ skill: s }));
         const weeklySchedule = weeklyScheduleRaw
             ? JSON.parse(weeklyScheduleRaw)
             : [];
@@ -390,9 +432,17 @@ export async function updateTeamMember(id: string, formData: FormData) {
         const personalSkills = personalSkillsRaw
             ? JSON.parse(personalSkillsRaw).map((s: string) => ({ skill: s }))
             : undefined;
-        const technicalDomain = technicalDomainRaw
+        let technicalDomain = technicalDomainRaw
             ? JSON.parse(technicalDomainRaw).map((s: string) => ({ skill: s }))
             : undefined;
+        const homeArea = (formData.get('homeArea') as string) || '';
+        if (technicalDomain) {
+            const normalizedDomain = applyHomeAreaToDomain(
+                technicalDomain.map((s: any) => s.skill),
+                homeArea || undefined,
+            );
+            technicalDomain = normalizedDomain.map((s) => ({ skill: s }));
+        }
         const weeklySchedule = weeklyScheduleRaw
             ? JSON.parse(weeklyScheduleRaw)
             : undefined;
