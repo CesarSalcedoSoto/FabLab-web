@@ -432,16 +432,6 @@ export default function AdminProfilePage() {
 
             {/* Acciones */}
             <div className="flex flex-col sm:flex-row gap-3 justify-between">
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleLogout}
-                disabled={authLoading || isSaving}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar sesión
-              </Button>
-
               <Button 
                 type="submit" 
                 disabled={isSaving}

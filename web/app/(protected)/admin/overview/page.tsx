@@ -118,7 +118,7 @@ export default async function OverviewPage() {
               <CardHeader className="p-3 sm:pb-2 sm:p-5">
                 <CardTitle className="text-[10px] sm:text-xs font-medium text-gray-500 flex items-center gap-2 uppercase tracking-wide">
                   <Wrench className="h-4 w-4 text-purple-500" />
-                  Equipos
+                  Activos
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-5 sm:pt-0">
