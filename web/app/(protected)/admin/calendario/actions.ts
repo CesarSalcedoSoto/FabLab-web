@@ -574,7 +574,9 @@ export async function getProjectsForMeeting(): Promise<{ id: string; title: stri
     const payload = await getPayload({ config });
     const { docs } = await payload.find({
       collection: "projects",
-      where: { status: { equals: "published" } },
+      where: {
+        status: { not_equals: "archived" },
+      },
       limit: 100,
       depth: 0,
       sort: "title",

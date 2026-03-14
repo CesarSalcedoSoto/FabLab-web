@@ -127,7 +127,7 @@ export default async function AdminDashboardPage() {
             <CardHeader className="p-3 sm:pb-2 sm:p-6">
               <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
                 <Wrench className="h-4 w-4 text-purple-500" />
-                Equipos
+                Activos
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
@@ -177,7 +177,7 @@ export default async function AdminDashboardPage() {
             <CardHeader className="p-3 sm:pb-2 sm:p-6">
               <CardTitle className="text-[10px] sm:text-sm font-medium text-gray-600 flex items-center gap-2">
                 <Users className="h-4 w-4 text-green-500" />
-                Equipo
+                Equipos
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">

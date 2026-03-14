@@ -1,0 +1,3 @@
+# Resumen de cambios
+
+Se dejó el sistema estable y actualizado: se corrigieron los problemas de base de datos que impedían cargar varias tablas, se ajustó el panel para que las métricas de proyectos reflejen mejor el estado real, se eliminaron tarjetas secundarias que ya no eran necesarias, se mejoró la navegación para que cuando no haya sesión aparezca solo “Iniciar sesión” y cuando sí haya sesión se muestre el usuario, se rediseñó la sección del equipo en la página principal con una estructura más clara tipo organigrama y editable desde administración sin cambios complejos de base de datos, se aseguró que “Legado por Generación” siempre se vea, y se alineó el criterio de proyectos entre panel y admin para que ambos muestren información consistente.
