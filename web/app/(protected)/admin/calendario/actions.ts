@@ -574,16 +574,14 @@ export async function getProjectsForMeeting(): Promise<{ id: string; title: stri
     const payload = await getPayload({ config });
     const { docs } = await payload.find({
       collection: "projects",
-      where: {
-        status: { not_equals: "archived" },
-      },
       limit: 100,
       depth: 0,
       sort: "title",
       overrideAccess: true,
     });
     return docs.map((d: any) => ({ id: String(d.id), title: d.title }));
-  } catch {
+  } catch (e) {
+    console.error("[Calendario] Error cargando proyectos para reunión:", e);
     return [];
   }
 }
