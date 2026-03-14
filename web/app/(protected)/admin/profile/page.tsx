@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { RequireAuth } from "@/shared/auth/RequireAuth";
 import { useAuth } from "@/shared/auth/useAuth";
@@ -21,7 +20,6 @@ import {
   User, 
   Mail, 
   Shield, 
-  LogOut, 
   Save, 
   Loader2, 
   Upload, 
@@ -53,8 +51,7 @@ interface ProfileData {
 }
 
 export default function AdminProfilePage() {
-  const { user, logout, isLoading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -99,11 +96,6 @@ export default function AdminProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.replace("/admin");
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
