@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/shared/ui/badges/badge";
+import Image from "next/image";
 import type { PublicSpecialist } from "./actions";
 
 interface TeamMembersCarouselWidgetProps {
@@ -20,13 +20,21 @@ function getInitials(name: string): string {
 }
 
 function getCategoryLabel(category?: string): string {
-  if (!category) return "Miembro";
+  if (!category) return "Colaborador";
 
   const normalized = category.toLowerCase();
-  if (normalized === "leadership") return "Liderazgo";
+  if (normalized === "leadership") return "Directivo";
   if (normalized === "specialist") return "Especialista";
-  if (normalized === "teacher") return "Docente";
-  return "Miembro";
+  return "Colaborador";
+}
+
+function getCategoryClasses(category?: string): string {
+  if (!category) return "bg-green-100 text-green-700";
+
+  const normalized = category.toLowerCase();
+  if (normalized === "leadership") return "bg-purple-100 text-purple-700";
+  if (normalized === "specialist") return "bg-blue-100 text-blue-700";
+  return "bg-green-100 text-green-700";
 }
 
 export function TeamMembersCarouselWidget({ members }: TeamMembersCarouselWidgetProps) {
@@ -56,25 +64,35 @@ export function TeamMembersCarouselWidget({ members }: TeamMembersCarouselWidget
   }
 
   const current = activeMembers[currentIndex];
+  const roleText = current.role || current.specialty || "Especialista";
+  const categoryLabel = getCategoryLabel(current.category);
+  const categoryClasses = getCategoryClasses(current.category);
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-slate-50 to-blue-50 p-3">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        {current.image ? (
+          <Image
+            src={current.image}
+            alt={current.name || "Especialista"}
+            width={64}
+            height={64}
+            className="w-16 h-16 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-16 h-16 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm sm:text-sm flex-shrink-0">
             {getInitials(current.name)}
           </div>
+        )}
 
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900 truncate">{current.name}</p>
-            <p className="text-xs text-gray-600 truncate">{current.role || "Rol no definido"}</p>
-            <div className="mt-2">
-              <Badge variant="outline" className="text-[10px] h-5 px-2">
-                {getCategoryLabel(current.category)}
-              </Badge>
-            </div>
-          </div>
+        <div className="w-full min-w-0 text-center sm:text-left">
+          <p className="font-medium text-xs sm:text-sm truncate px-1">{current.name}</p>
+          <p className="hidden sm:block text-xs text-gray-500 truncate">{roleText}</p>
         </div>
+
+        <span className={`hidden sm:inline text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${categoryClasses}`}>
+          {categoryLabel}
+        </span>
       </div>
 
       {activeMembers.length > 1 && (

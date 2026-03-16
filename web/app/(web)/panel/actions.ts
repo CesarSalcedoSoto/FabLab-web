@@ -59,6 +59,8 @@ export interface PublicSpecialist {
   id: string | number;
   name: string;
   role: string;
+  specialty: string;
+  image?: string | null;
   category: string;
   active: boolean;
 }
@@ -270,13 +272,15 @@ export async function getPublicActiveSpecialists(): Promise<PublicSpecialist[]> 
       collection: "users",
       where: { showInTeam: { equals: true } },
       limit: 100,
-      depth: 0,
+      depth: 1,
       sort: "order",
     });
     return docs.map((doc: any) => ({
       id: doc.id,
       name: doc.name || "Sin nombre",
       role: doc.jobTitle || "",
+      specialty: doc.jobTitle || "",
+      image: typeof doc.avatar === "object" ? doc.avatar?.url : null,
       category: doc.category || "specialist",
       active: true,
     }));
