@@ -133,7 +133,7 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-gray-100 group-hover:ring-orange-400 transition-all cursor-pointer relative">
                     <Image
-                      src={member.imagen}
+                      src={member.imagen || "/images/placeholders/facebook-avatar.svg"}
                       alt={member.nombre}
                       fill
                       className="object-cover"

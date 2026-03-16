@@ -47,7 +47,7 @@ export function TeamSection() {
     id: String(m.id),
     name: m.name,
     role: m.role || "",
-    image: m.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    image: m.image || "/images/placeholders/facebook-avatar.svg",
     bio: m.bio || "",
     category: m.category,
     homeArea: m.homeArea,

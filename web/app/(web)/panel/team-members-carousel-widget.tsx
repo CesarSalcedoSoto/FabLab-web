@@ -8,17 +8,6 @@ interface TeamMembersCarouselWidgetProps {
   members: PublicSpecialist[];
 }
 
-function getInitials(name: string): string {
-  return (
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "MI"
-  );
-}
-
 function getCategoryLabel(category?: string): string {
   if (!category) return "Colaborador";
 
@@ -74,7 +63,7 @@ export function TeamMembersCarouselWidget({ members }: TeamMembersCarouselWidget
             const roleText = member.role || member.specialty || "Especialista";
             const categoryLabel = getCategoryLabel(member.category);
             const categoryClasses = getCategoryClasses(member.category);
-            const imageSrc = member.image || "/images/logos/fablab-logo.png";
+            const imageSrc = member.image || "/images/placeholders/facebook-avatar.svg";
 
             return (
               <div key={String(member.id)} className="w-full shrink-0">

@@ -43,21 +43,13 @@ export function TeamMemberModal({ member, isOpen, onClose }: TeamMemberModalProp
           <div className="grid md:grid-cols-2 min-h-full">
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 md:p-12 flex flex-col justify-center items-center text-white">
               <div className="w-48 h-48 rounded-3xl overflow-hidden ring-4 ring-white/30 mb-6 relative">
-                {member.imagen ? (
-                  <Image
-                    src={member.imagen}
-                    alt={member.nombre}
-                    fill
-                    className="object-cover"
-                    style={{ objectPosition: member.imagePosition || '50% 50%' }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-white/20 flex items-center justify-center">
-                    <span className="text-4xl font-bold text-white/60">
-                      {member.nombre.charAt(0)}
-                    </span>
-                  </div>
-                )}
+                <Image
+                  src={member.imagen || "/images/placeholders/facebook-avatar.svg"}
+                  alt={member.nombre}
+                  fill
+                  className="object-cover"
+                  style={{ objectPosition: member.imagePosition || '50% 50%' }}
+                />
               </div>
               <h2 className="text-3xl font-bold mb-2">{member.nombre}</h2>
               <p className="text-orange-100 font-medium mb-1">{member.cargo}</p>

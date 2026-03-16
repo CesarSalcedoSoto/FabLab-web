@@ -32,21 +32,13 @@ export function TeamMemberCard({ member, index, onSelect }: TeamMemberCardProps)
         <div className="w-full text-center">
           <div className="relative mb-3 inline-block">
             <div className="w-20 h-20 mx-auto rounded-full overflow-hidden ring-2 ring-gray-100 group-hover:ring-orange-200 transition-all duration-500 relative">
-              {member.imagen ? (
-                <Image
-                  src={member.imagen}
-                  alt={member.nombre}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  style={{ objectPosition: member.imagePosition || '50% 50%' }}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-                  <span className="text-white text-2xl font-bold">
-                    {member.nombre?.charAt(0)?.toUpperCase() || '?'}
-                  </span>
-                </div>
-              )}
+              <Image
+                src={member.imagen || "/images/placeholders/facebook-avatar.svg"}
+                alt={member.nombre}
+                fill
+                className="object-cover group-hover:scale-110 transition-transform duration-700"
+                style={{ objectPosition: member.imagePosition || '50% 50%' }}
+              />
             </div>
           </div>
 
