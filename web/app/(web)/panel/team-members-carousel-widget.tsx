@@ -63,36 +63,45 @@ export function TeamMembersCarouselWidget({ members }: TeamMembersCarouselWidget
     return <p className="text-sm text-gray-400 text-center py-4">Sin miembros visibles en el organigrama</p>;
   }
 
-  const current = activeMembers[currentIndex];
-  const roleText = current.role || current.specialty || "Especialista";
-  const categoryLabel = getCategoryLabel(current.category);
-  const categoryClasses = getCategoryClasses(current.category);
-
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-        {current.image ? (
-          <Image
-            src={current.image}
-            alt={current.name || "Especialista"}
-            width={64}
-            height={64}
-            className="w-16 h-16 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-16 h-16 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm sm:text-sm flex-shrink-0">
-            {getInitials(current.name)}
-          </div>
-        )}
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {activeMembers.map((member) => {
+            const roleText = member.role || member.specialty || "Especialista";
+            const categoryLabel = getCategoryLabel(member.category);
+            const categoryClasses = getCategoryClasses(member.category);
+            const imageSrc = member.image || "/images/logos/fablab-logo.png";
 
-        <div className="w-full min-w-0 text-center sm:text-left">
-          <p className="font-medium text-xs sm:text-sm truncate px-1">{current.name}</p>
-          <p className="hidden sm:block text-xs text-gray-500 truncate">{roleText}</p>
+            return (
+              <div key={String(member.id)} className="w-full shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="w-16 h-16 sm:w-10 sm:h-10 rounded-full bg-white ring-1 ring-gray-200 overflow-hidden flex-shrink-0">
+                    <Image
+                      src={imageSrc}
+                      alt={member.name || "Especialista"}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="w-full min-w-0 text-center sm:text-left">
+                    <p className="font-medium text-xs sm:text-sm truncate px-1">{member.name}</p>
+                    <p className="hidden sm:block text-xs text-gray-500 truncate">{roleText}</p>
+                  </div>
+
+                  <span className={`hidden sm:inline text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${categoryClasses}`}>
+                    {categoryLabel}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        <span className={`hidden sm:inline text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${categoryClasses}`}>
-          {categoryLabel}
-        </span>
       </div>
 
       {activeMembers.length > 1 && (
