@@ -13,10 +13,11 @@ import {
 import { Button } from "@/shared/ui/buttons/button";
 import Link from "next/link";
 import {
+  getPublicActiveSpecialists,
   getPublicDashboardMetrics,
-  getPublicRecentActivity,
 } from "./actions";
 import { PanelCalendarWidget } from "./calendar-widget";
+import { TeamMembersCarouselWidget } from "./team-members-carousel-widget";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +29,9 @@ export const metadata = {
 
 export default async function PanelPage() {
   noStore();
-  const [metrics, recentActivities] = await Promise.all([
+  const [metrics, activeSpecialists] = await Promise.all([
     getPublicDashboardMetrics(),
-    getPublicRecentActivity(),
+    getPublicActiveSpecialists(),
   ]);
 
   const now = new Date();
@@ -166,32 +167,16 @@ export default async function PanelPage() {
 
         {/* Widgets laterales */}
         <div className="space-y-4 sm:space-y-6">
-          {/* Widget: Actividades del Día */}
+          {/* Widget: Miembros FabLab desde organigrama */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 <Activity className="h-4 w-4 text-blue-500" />
-                Actividades del Día
+                Miembros FabLab
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {recentActivities.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Sin actividades registradas hoy</p>
-              ) : (
-                <div className="space-y-3 max-h-[32rem] overflow-y-auto pr-1">
-                  {recentActivities.map((act) => (
-                    <div key={act.id} className="flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0 mt-0.5">
-                        {act.user?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "U"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 truncate">{act.title}</p>
-                        <p className="text-[10px] text-gray-400">{act.time}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <TeamMembersCarouselWidget members={activeSpecialists} />
             </CardContent>
           </Card>
         </div>

@@ -55,10 +55,11 @@ function getFirstDayOfWeek(month: number, year: number) {
 
 export function PanelCalendarWidget() {
   const now = new Date();
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayDateStr);
   const [loading, setLoading] = useState(true);
 
   const fetchEvents = useCallback(async () => {
@@ -77,6 +78,16 @@ export function PanelCalendarWidget() {
     fetchEvents();
   }, [fetchEvents]);
 
+  useEffect(() => {
+    const selected = new Date(`${selectedDate ?? todayDateStr}T12:00:00`);
+    const inCurrentMonth =
+      selected.getMonth() === currentMonth && selected.getFullYear() === currentYear;
+
+    if (inCurrentMonth) return;
+
+    setSelectedDate(`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`);
+  }, [currentMonth, currentYear, selectedDate, todayDateStr]);
+
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
   const firstDay = getFirstDayOfWeek(currentMonth, currentYear);
   const today = new Date();
@@ -89,7 +100,6 @@ export function PanelCalendarWidget() {
     } else {
       setCurrentMonth((m) => m - 1);
     }
-    setSelectedDate(null);
   };
 
   const nextMonth = () => {
@@ -99,7 +109,6 @@ export function PanelCalendarWidget() {
     } else {
       setCurrentMonth((m) => m + 1);
     }
-    setSelectedDate(null);
   };
 
   const eventsByDate: Record<string, CalendarEvent[]> = {};
@@ -186,23 +195,6 @@ export function PanelCalendarWidget() {
               })}
             </div>
 
-            {/* Quick Stats when no date selected */}
-            {!selectedDate && (
-              <div className="border-t pt-3 mt-1">
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  {(["equipment", "room", "meeting", "event"] as const).map((type) => {
-                    const count = events.filter((e) => e.type === type).length;
-                    const colors = eventTypeColors[type];
-                    return (
-                      <div key={type} className={`rounded-lg p-2 ${colors.bg}`}>
-                        <p className={`text-lg font-bold ${colors.text}`}>{count}</p>
-                        <p className="text-[9px] text-gray-500">{eventTypeLabels[type]}s</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="border-t xl:border-t-0 xl:border-l pt-3 xl:pt-0 xl:pl-4 min-h-[11rem]">
