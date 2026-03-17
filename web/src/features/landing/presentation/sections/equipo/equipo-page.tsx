@@ -41,7 +41,7 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
               Los líderes que guían la visión y estrategia de FabLab INACAP.
             </p>
           </div>
-
+          <MembresiaSection />
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {directivos.map((member, index) => (
               <div key={member.id} className="h-64">
@@ -153,7 +153,7 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
       )}
 
       <ValoresSection />
-      <MembresiaSection />
+
 
       <TeamMemberModal
         member={selectedMember}
