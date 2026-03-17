@@ -28,6 +28,7 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
       <HeroEquipo stats={heroStats} />
 
       {/* Directivos */}
+          <MembresiaSection />
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
@@ -41,7 +42,6 @@ export function EquipoPage({ heroStats = defaultHeroStats, teamMembers = [] }: E
               Los líderes que guían la visión y estrategia de FabLab INACAP.
             </p>
           </div>
-          <MembresiaSection />
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {directivos.map((member, index) => (
               <div key={member.id} className="h-64">
