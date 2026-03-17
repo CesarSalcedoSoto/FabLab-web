@@ -120,11 +120,11 @@ export function MembresiaSection() {
 
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl p-6 flex gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-orange-600">300+</p>
-                <p className="text-sm text-gray-500">Colaboradores</p>
+                <p className="text-3xl font-bold text-orange-600">+45</p>
+                <p className="text-sm text-gray-500">Especialistas</p>
               </div>
               <div className="text-center border-l border-gray-200 pl-8">
-                <p className="text-3xl font-bold text-orange-600">30+</p>
+                <p className="text-3xl font-bold text-orange-600">+8</p>
                 <p className="text-sm text-gray-500">Proyectos</p>
               </div>
             </div>
